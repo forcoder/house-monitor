@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">房源监控</string>
+    <string name="start_monitoring">开始监控</string>
+    <string name="stop_monitoring">停止监控</string>
+    <string name="meituan_url_hint">请输入美团小程序地址</string>
+    <string name="monitoring_status_running">监控状态: 运行中</string>
+    <string name="monitoring_status_stopped">监控状态: 已停止</string>
+    <string name="last_check_time">最后检查时间: %s</string>
+    <string name="notification_title">发现无房日期</string>
+    <string name="notification_content">检测到以下日期无房:\n%s</string>
+    <string name="error_empty_url">请输入美团小程序地址</string>
+    <string name="error_network">网络连接失败</string>
+    <string name="error_parsing">数据解析失败</string>
+    <string name="usage_title">使用说明</string>
+    <string name="usage_content">1. 输入美团小程序中房源的地址\n2. 点击"开始监控"按钮\n3. APP将每5分钟自动检查房源可用性\n4. 发现无房日期时会发送通知提醒</string>
+</resources>

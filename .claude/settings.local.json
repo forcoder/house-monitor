@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where gradle:*)",
+      "Bash(where android:*)",
+      "Bash(dir)",
+      "Bash(copy:*)",
+      "Bash(cd /d D:\\\\workspace\\\\workbuddy\\\\house)",
+      "Bash(build.bat)",
+      "Bash(start:*)",
+      "Bash(dir D:\\\\Android:*)",
+      "Bash(dir D:\\\\Android\\\\SDK:*)",
+      "Bash(gradlew.bat --version)",
+      "Bash(cmd:*)",
+      "Bash(java:*)",
+      "Bash(\"C:\\\\Program Files\\\\Eclipse Adoptium\\\\jdk-8.0.482.8-hotspot\\\\bin\\\\java.exe\" -jar gradle/wrapper/gradle-wrapper.jar --version)"
+    ]
+  }
+}

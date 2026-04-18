@@ -32,7 +32,7 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-- name: Build with Gradle
+    - name: Build with Gradle
       run: |
         # Use system gradle or installed gradle
         if command -v gradle >/dev/null; then

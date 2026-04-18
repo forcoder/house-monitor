@@ -17,7 +17,10 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(./gradlew build *)",
+      "Read(//d/workspace/workbuddy/house-monitor/**)",
+      "Bash(gradlew build *)"
     ]
   }
 }

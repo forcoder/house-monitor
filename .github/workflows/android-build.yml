@@ -29,21 +29,18 @@ jobs:
           # Install minimal gradle
           sudo apt-get update && sudo apt-get install -y gradle
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-
     - name: Build with Gradle
       run: |
-        # Use system gradle or installed gradle
-        if command -v gradle >/dev/null; then
+        # Use gradlew wrapper or fallback to system gradle
+        if [ -f "./gradlew" ]; then
+          ./gradlew build --no-daemon --stacktrace
+        elif command -v gradle >/dev/null; then
           gradle build --no-daemon --stacktrace
         else
-          echo "Gradle not available, skipping build"
+          echo "Neither gradlew nor system gradle available, skipping build"
         fi
       env:
         GRADLE_OPTS: -Xmx4g
-
-    - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
         name: house-monitor-debug

@@ -20,7 +20,8 @@
       "Bash(git checkout:*)",
       "Bash(./gradlew build *)",
       "Read(//d/workspace/workbuddy/house-monitor/**)",
-      "Bash(gradlew build *)"
+      "Bash(gradlew build *)",
+      "Bash(chmod +x *)"
     ]
   }
 }

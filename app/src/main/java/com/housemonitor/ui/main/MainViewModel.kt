@@ -129,6 +129,7 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             val result = userSettingsRepository.updateNotificationEnabled(enabled)
             result.fold(
+                onSuccess = { },
                 onFailure = {
                     _uiState.value = _uiState.value.copy(
                         errorMessage = "更新通知设置失败: ${it.message}"

@@ -5,10 +5,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -48,7 +47,7 @@ fun SettingsScreen(
             // 监控设置
             SettingsSection(
                 title = "监控设置",
-                icon = Icons.Default.Schedule
+                icon = Icons.Default.AccessTime
             ) {
                 SettingsItem(
                     title = "检查间隔",
@@ -121,10 +120,7 @@ fun SettingsScreen(
                 SettingsItem(
                     title = "监控历史",
                     subtitle = "查看所有监控记录",
-                    onClick = {
-                        val intent = android.content.Intent(androidx.compose.ui.platform.LocalContext.current, com.housemonitor.ui.history.HistoryActivity::class.java)
-                        androidx.compose.ui.platform.LocalContext.current.startActivity(intent)
-                    }
+                    onClick = { /* TODO: navigate to history */ }
                 )
             }
         }

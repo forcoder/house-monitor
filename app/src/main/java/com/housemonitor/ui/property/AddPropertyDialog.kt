@@ -5,8 +5,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.RemoveRedEye
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -121,7 +121,7 @@ fun AddPropertyDialog(
                     trailingIcon = {
                         IconButton(onClick = { showUrlExample = !showUrlExample }) {
                             Icon(
-                                if (showUrlExample) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                if (showUrlExample) Icons.Default.Close else Icons.Default.RemoveRedEye,
                                 contentDescription = if (showUrlExample) "隐藏示例" else "显示示例"
                             )
                         }

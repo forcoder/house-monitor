@@ -5,7 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -16,7 +16,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.housemonitor.R
-import com.housemonitor.ui.history.HistoryActivity
 import com.housemonitor.ui.property.AddPropertyDialog
 import com.housemonitor.ui.property.PropertyCard
 import kotlinx.coroutines.launch
@@ -62,12 +61,8 @@ fun MainScreen(
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "设置")
                     }
-                    IconButton(onClick = {
-                        // 导航到历史记录页面
-                        val intent = android.content.Intent(androidx.compose.ui.platform.LocalContext.current, HistoryActivity::class.java)
-                        androidx.compose.ui.platform.LocalContext.current.startActivity(intent)
-                    }) {
-                        Icon(Icons.Default.History, contentDescription = "历史记录")
+                    IconButton(onClick = { /* TODO: navigate to history */ }) {
+                        Icon(Icons.Default.List, contentDescription = "历史记录")
                     }
                 }
             )

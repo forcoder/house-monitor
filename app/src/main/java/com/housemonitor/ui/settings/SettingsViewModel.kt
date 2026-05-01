@@ -37,6 +37,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             val result = userSettingsRepository.updateCheckInterval(interval)
             result.fold(
+                onSuccess = { },
                 onFailure = {
                     _uiState.value = _uiState.value.copy(
                         errorMessage = "更新检查间隔失败: ${it.message}"
@@ -52,6 +53,7 @@ class SettingsViewModel @Inject constructor(
             currentSettings?.let {
                 val result = userSettingsRepository.updateNotificationEnabled(!it.notificationEnabled)
                 result.fold(
+                    onSuccess = { },
                     onFailure = {
                         _uiState.value = _uiState.value.copy(
                             errorMessage = "更新通知设置失败: ${it.message}"
@@ -70,6 +72,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             val result = userSettingsRepository.updateQuietHours(startHour, endHour)
             result.fold(
+                onSuccess = { },
                 onFailure = {
                     _uiState.value = _uiState.value.copy(
                         errorMessage = "更新免打扰时段失败: ${it.message}"

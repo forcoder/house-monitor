@@ -50,10 +50,9 @@ jobs:
 
     - name: Get version
       id: version
-      shell: bash
       run: |
-        VERSION=$(grep -oP 'versionName "\K[^"]+' app/build.gradle)
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        $version = Select-String -Path "app\build.gradle" -Pattern 'versionName\s+"([^"]+)"' | ForEach-Object { $_.Matches[0].Groups[1].Value }
+        Write-Output "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2

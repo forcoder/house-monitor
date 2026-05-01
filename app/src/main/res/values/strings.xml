@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">房源监控</string>
+
+    <!-- Main Screen -->
+    <string name="title_properties">房源监控</string>
+    <string name="add_property">添加房源</string>
+    <string name="refresh">刷新</string>
+    <string name="settings">设置</string>
+    <string name="no_properties">还没有添加房源</string>
+    <string name="no_properties_subtitle">点击下方按钮添加要监控的房源</string>
+
+    <!-- Property -->
+    <string name="property_name">房源名称</string>
+    <string name="property_url">美团小程序链接</string>
+    <string name="property_description">描述（可选）</string>
+    <string name="delete_property">删除房源</string>
+    <string name="delete_property_confirm">确定要删除房源 "%1$s" 吗？此操作不可撤销。</string>
+    <string name="property_active">监控中</string>
+    <string name="property_inactive">已暂停</string>
+    <string name="toggle_monitoring">切换监控状态</string>
+    <string name="created_at">创建时间</string>
+
+    <!-- Add Property Dialog -->
+    <string name="add_property_title">添加房源</string>
+    <string name="property_name_hint">例如：北京朝阳区温馨公寓</string>
+    <string name="url_hint">https://...meituan.com/...</string>
+    <string name="description_hint">备注信息...</string>
+    <string name="url_example_title">链接格式示例：</string>
+    <string name="url_example_content">美团民宿小程序：\n小程序内长按识别二维码\n或复制小程序链接</string>
+    <string name="show_example">显示示例</string>
+    <string name="hide_example">隐藏示例</string>
+    <string name="cancel">取消</string>
+    <string name="confirm">确认</string>
+
+    <!-- Notifications -->
+    <string name="notification_title">房源无房提醒</string>
+    <string name="notification_channel_name">房源监控通知</string>
+    <string name="notification_channel_description">房源无房日期提醒</string>
+    <string name="view_details">查看详情</string>
+    <string name="monitoring_started">房源监控已启动</string>
+    <string name="monitoring_started_content">正在监控您添加的房源日历</string>
+    <string name="monitoring_error">监控出错</string>
+
+    <!-- Settings -->
+    <string name="settings_title">设置</string>
+    <string name="back">返回</string>
+
+    <!-- Monitoring Settings -->
+    <string name="monitoring_settings">监控设置</string>
+    <string name="check_interval">检查间隔</string>
+    <string name="auto_refresh">自动刷新</string>
+    <string name="auto_refresh_enabled">已开启</string>
+    <string name="auto_refresh_disabled">已关闭</string>
+
+    <!-- Notification Settings -->
+    <string name="notification_settings">通知设置</string>
+    <string name="push_notifications">推送通知</string>
+    <string name="notifications_enabled">已开启</string>
+    <string name="notifications_disabled">已关闭</string>
+    <string name="quiet_hours">免打扰时段</string>
+
+    <!-- About -->
+    <string name="about">关于</string>
+    <string name="app_version">应用版本</string>
+    <string name="privacy_policy">隐私政策</string>
+    <string name="user_agreement">用户协议</string>
+
+    <!-- Errors -->
+    <string name="error_add_property">添加房源失败</string>
+    <string name="error_delete_property">删除房源失败</string>
+    <string name="error_update_settings">更新设置失败</string>
+    <string name="error_generic">操作失败</string>
+
+    <!-- Time Format -->
+    <string name="time_format">HH:mm</string>
+    <string name="date_format">yyyy-MM-dd</string>
+
+</resources>

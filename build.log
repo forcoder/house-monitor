@@ -1,0 +1,2 @@
+./gradlew: line 211: syntax error near unexpected token `^'
+./gradlew: line 211: `    OURCYGPATTERN="(^($ROOTDIRSRAW))"'

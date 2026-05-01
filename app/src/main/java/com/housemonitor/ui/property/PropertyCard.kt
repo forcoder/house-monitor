@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
@@ -130,7 +130,7 @@ fun PropertyCard(
                         onClick = onToggleActive
                     ) {
                         Icon(
-                            if (property.isActive) Icons.Default.Stop else Icons.Default.PlayArrow,
+                            if (property.isActive) Icons.Default.Notifications else Icons.Default.PlayArrow,
                             contentDescription = if (property.isActive) "暂停监控" else "开始监控",
                             tint = if (property.isActive)
                                 MaterialTheme.colorScheme.secondary

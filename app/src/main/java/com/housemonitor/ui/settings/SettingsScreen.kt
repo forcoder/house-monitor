@@ -7,7 +7,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -47,7 +46,7 @@ fun SettingsScreen(
             // 监控设置
             SettingsSection(
                 title = "监控设置",
-                icon = Icons.Default.AccessTime
+                icon = Icons.Default.Info
             ) {
                 SettingsItem(
                     title = "检查间隔",

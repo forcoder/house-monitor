@@ -116,7 +116,11 @@ fun MonitorRecordCard(
                 Icon(
                     imageVector = getStatusIcon(record.status),
                     contentDescription = "状态",
-                    tint = getStatusColor(record.status),
+                    tint = when (record.status) {
+                        "success" -> MaterialTheme.colorScheme.primary
+                        "failed" -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -176,14 +180,6 @@ private fun getStatusIcon(status: String): androidx.compose.ui.graphics.vector.I
         "success" -> Icons.Default.CheckCircle
         "failed" -> Icons.Default.Warning
         else -> Icons.Default.Warning
-    }
-}
-
-private fun getStatusColor(status: String): Color {
-    return when (status) {
-        "success" -> MaterialTheme.colorScheme.primary
-        "failed" -> MaterialTheme.colorScheme.error
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 }
 

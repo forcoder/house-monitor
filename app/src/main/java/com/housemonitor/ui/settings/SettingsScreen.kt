@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.housemonitor.BuildConfig
 import com.housemonitor.ui.settings.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,8 +100,14 @@ fun SettingsScreen(
             ) {
                 SettingsItem(
                     title = "应用版本",
-                    subtitle = "1.0.0",
+                    subtitle = BuildConfig.VERSION_NAME,
                     onClick = { }
+                )
+
+                SettingsItem(
+                    title = "检查更新",
+                    subtitle = "当前版本 ${BuildConfig.VERSION_NAME}",
+                    onClick = { /* TODO: trigger OTA check */ }
                 )
 
                 SettingsItem(

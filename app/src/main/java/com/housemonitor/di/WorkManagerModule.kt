@@ -1,6 +1,7 @@
 package com.housemonitor.di
 
 import android.content.Context
+import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import androidx.work.WorkManager
 import dagger.Module
@@ -16,9 +17,13 @@ object WorkManagerModule {
 
     @Provides
     @Singleton
-    fun provideWorkManager(@ApplicationContext context: Context): WorkManager {
+    fun provideWorkManager(
+        @ApplicationContext context: Context,
+        workerFactory: HiltWorkerFactory
+    ): WorkManager {
         val config = Configuration.Builder()
             .setMinimumLoggingLevel(android.util.Log.INFO)
+            .setWorkerFactory(workerFactory)
             .build()
         WorkManager.initialize(context, config)
         return WorkManager.getInstance(context)

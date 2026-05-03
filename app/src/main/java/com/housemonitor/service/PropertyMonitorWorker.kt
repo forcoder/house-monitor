@@ -11,7 +11,10 @@ import com.housemonitor.data.repository.UserSettingsRepository
 import com.housemonitor.util.NotificationManager
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -66,21 +69,28 @@ class PropertyMonitorWorker @AssistedInject constructor(
         }
 
         try {
-            val parser = platformParserFactory.getParser(property.platform)
-            val meituanWebView = MeituanWebView(applicationContext, parser)
-            val webView = meituanWebView.initialize()
+            // WebView 必须在主线程上创建和操作
+            val unavailableDates = withContext(Dispatchers.Main) {
+                val parser = platformParserFactory.getParser(property.platform)
+                val meituanWebView = MeituanWebView(applicationContext, parser)
+                meituanWebView.initialize()
 
-            // 加载美团小程序页面
-            meituanWebView.loadUrl(property.url)
+                try {
+                    // 加载页面
+                    meituanWebView.loadUrl(property.url)
 
-            // 等待页面加载完成
-            delay(8000) // 8秒等待页面完全加载
+                    // 等待页面加载完成
+                    delay(8000) // 8秒等待页面完全加载
 
-            // 检测日历状态
-            val unavailableDates = meituanWebView.evaluateCalendarStatus()
+                    // 检测日历状态
+                    meituanWebView.evaluateCalendarStatus()
+                } finally {
+                    meituanWebView.destroy()
+                }
+            }
 
-            // 获取之前的状态用于比较
-            val previousRecord = monitorRepository.getRecordByPropertyAndDate(propertyId, checkDate)
+            // 获取最近一次成功检查的记录用于比较（不限日期，确保能检测到变化）
+            val previousRecord = monitorRepository.getLastSuccessRecord(propertyId)
             val previousDates = previousRecord?.let { monitorRepository.parseUnavailableDates(it.unavailableDates) } ?: emptyList()
 
             // 保存监控记录
@@ -101,9 +111,6 @@ class PropertyMonitorWorker @AssistedInject constructor(
                 previousUnavailableDates = previousDates,
                 userSettings = userSettingsRepository.getUserSettingsSync()
             )
-
-            // 清理资源
-            meituanWebView.destroy()
 
         } catch (e: Exception) {
             // 记录失败状态
@@ -172,14 +179,12 @@ class PropertyMonitorWorker @AssistedInject constructor(
     }
 
     private suspend fun monitorAllProperties(checkDate: String) {
-        val activeProperties = propertyRepository.getActiveProperties()
+        val properties = propertyRepository.getActiveProperties().first()
 
-        activeProperties.collect { properties ->
-            properties.forEach { property ->
-                monitorSingleProperty(property.id, checkDate)
-                // 避免过于频繁的请求
-                delay(2000)
-            }
+        properties.forEach { property ->
+            monitorSingleProperty(property.id, checkDate)
+            // 避免过于频繁的请求
+            delay(2000)
         }
     }
 

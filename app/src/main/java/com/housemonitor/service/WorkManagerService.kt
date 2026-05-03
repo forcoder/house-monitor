@@ -1,11 +1,9 @@
 package com.housemonitor.service
 
 import android.content.Context
-import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.*
 import com.housemonitor.data.repository.UserSettingsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -13,8 +11,7 @@ import javax.inject.Singleton
 @Singleton
 class WorkManagerService @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val userSettingsRepository: UserSettingsRepository,
-    private val workerFactory: HiltWorkerFactory
+    private val userSettingsRepository: UserSettingsRepository
 ) {
 
     private val workManager = WorkManager.getInstance(context)

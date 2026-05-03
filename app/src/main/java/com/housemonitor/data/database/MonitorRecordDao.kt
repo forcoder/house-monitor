@@ -15,6 +15,9 @@ interface MonitorRecordDao {
     @Query("SELECT * FROM monitor_records WHERE propertyId = :propertyId AND checkDate = :checkDate LIMIT 1")
     suspend fun getRecordByPropertyAndDate(propertyId: String, checkDate: String): MonitorRecord?
 
+    @Query("SELECT * FROM monitor_records WHERE propertyId = :propertyId AND status = 'success' ORDER BY checkedAt DESC LIMIT 1")
+    suspend fun getLastSuccessRecord(propertyId: String): MonitorRecord?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRecord(record: MonitorRecord)
 

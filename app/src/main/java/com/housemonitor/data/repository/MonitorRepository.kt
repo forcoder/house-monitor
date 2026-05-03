@@ -25,6 +25,10 @@ class MonitorRepository @Inject constructor(
         return monitorRecordDao.getRecordByPropertyAndDate(propertyId, checkDate)
     }
 
+    suspend fun getLastSuccessRecord(propertyId: String): MonitorRecord? {
+        return monitorRecordDao.getLastSuccessRecord(propertyId)
+    }
+
     suspend fun saveMonitorRecord(
         propertyId: String,
         checkDate: String,

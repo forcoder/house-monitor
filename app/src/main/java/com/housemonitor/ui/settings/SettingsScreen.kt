@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Update
+import androidx.compose.material3.Badge
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -130,12 +131,7 @@ fun SettingsScreen(
                 title = "关于",
                 icon = Icons.Default.Info
             ) {
-                SettingsItem(
-                    title = "应用版本",
-                    subtitle = BuildConfig.VERSION_NAME,
-                    onClick = { }
-                )
-
+                // 检查更新 — 放在最上面，更显眼
                 SettingsItem(
                     title = stringResource(R.string.check_for_update),
                     subtitle = when (updateStatus) {
@@ -146,24 +142,26 @@ fun SettingsScreen(
                         else -> "当前版本 ${BuildConfig.VERSION_NAME}"
                     },
                     onClick = { viewModel.checkForUpdate() },
+                    icon = Icons.Default.Update,
                     trailing = if (updateStatus == UpdateStatus.CHECKING) {
                         { CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp) }
+                    } else if (updateStatus == UpdateStatus.UPDATE_AVAILABLE) {
+                        {
+                            Badge(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError
+                            ) {
+                                Text("!")
+                            }
+                        }
                     } else null
                 )
 
                 SettingsItem(
-                    title = "隐私政策",
-                    subtitle = "查看隐私政策",
+                    title = "应用版本",
+                    subtitle = BuildConfig.VERSION_NAME,
                     onClick = { }
                 )
-
-                SettingsItem(
-                    title = "用户协议",
-                    subtitle = "查看用户协议",
-                    onClick = { }
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
 
                 SettingsItem(
                     title = "监控历史",
@@ -258,6 +256,7 @@ fun SettingsItem(
     title: String,
     subtitle: String,
     onClick: () -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
     trailing: (@Composable () -> Unit)? = null
 ) {
     Surface(
@@ -271,6 +270,15 @@ fun SettingsItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            if (icon != null) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+            }
             Column(
                 modifier = Modifier.weight(1f)
             ) {

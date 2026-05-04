@@ -58,8 +58,10 @@ fun MainScreen(
                             Icon(Icons.Default.Refresh, contentDescription = "刷新")
                         }
                     }
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "设置")
+                    TextButton(onClick = onNavigateToSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("设置")
                     }
                     IconButton(onClick = { /* TODO: navigate to history */ }) {
                         Icon(Icons.Default.List, contentDescription = "历史记录")

@@ -6,7 +6,10 @@ import javax.inject.Singleton
 @Singleton
 class PlatformParserFactory @Inject constructor() {
     private val parsers: List<PlatformParser> = listOf(
-        MeituanPlatformParser()
+        MeituanPlatformParser(),
+        TujiaPlatformParser(),
+        XiaozhuPlatformParser(),
+        MuniaoPlatformParser()
     )
 
     fun getParser(platformId: String): PlatformParser {

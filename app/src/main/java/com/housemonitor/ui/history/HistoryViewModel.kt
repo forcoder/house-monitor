@@ -26,16 +26,32 @@ class HistoryViewModel @Inject constructor(
 
     private fun loadData() {
         viewModelScope.launch {
-            // 加载所有房源列表
-            propertyRepository.getAllProperties().collect { properties ->
-                _uiState.value = _uiState.value.copy(allProperties = properties)
-            }
-        }
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val properties = propertyRepository.getAllProperties().first()
+                val propertiesMap = properties.associateBy { it.id }
+                val allRecords = mutableListOf<MonitorRecord>()
+                val recordsByProperty = mutableMapOf<String, List<MonitorRecord>>()
 
-        viewModelScope.launch {
-            // 加载监控记录
-            monitorRepository.getRecentRecords(100).collect { records ->
-                _uiState.value = _uiState.value.copy(allRecords = records)
+                properties.forEach { property ->
+                    val records = monitorRepository.getRecentRecordsByPropertyId(property.id, 10)
+                    recordsByProperty[property.id] = records
+                    allRecords.addAll(records)
+                }
+
+                _uiState.update {
+                    it.copy(
+                        allProperties = properties,
+                        allRecords = allRecords.sortedByDescending { r -> r.checkedAt },
+                        recordsByProperty = recordsByProperty,
+                        filteredRecords = allRecords.sortedByDescending { r -> r.checkedAt },
+                        isLoading = false
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(isLoading = false, errorMessage = e.message)
+                }
             }
         }
     }
@@ -127,6 +143,7 @@ class HistoryViewModel @Inject constructor(
 data class HistoryUiState(
     val allProperties: List<Property> = emptyList(),
     val allRecords: List<MonitorRecord> = emptyList(),
+    val recordsByProperty: Map<String, List<MonitorRecord>> = emptyMap(),
     val filteredRecords: List<MonitorRecord> = emptyList(),
     val selectedPropertyId: String? = null,
     val propertyName: String? = null,

@@ -2,7 +2,7 @@ package com.housemonitor.ui.history
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.List
@@ -90,8 +90,12 @@ fun HistoryScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(uiState.filteredRecords) { record ->
-                            MonitorRecordCard(record = record)
+                        itemsIndexed(uiState.filteredRecords) { index, record ->
+                            MonitorRecordCard(
+                                record = record,
+                                isFirst = index == 0,
+                                propertyName = uiState.allProperties.find { it.id == record.propertyId }?.name ?: "未知房源"
+                            )
                         }
                     }
                 }

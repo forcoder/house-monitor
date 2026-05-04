@@ -3,6 +3,7 @@ package com.housemonitor.ui.theme
 import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -10,9 +11,12 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
@@ -27,10 +31,43 @@ private val LightColorScheme = lightColorScheme(
     tertiary = Pink40
 )
 
+// 自定义形状 — 大圆角现代风格
+object AppShapes {
+    val cardLarge = RoundedCornerShape(20.dp)
+    val cardMedium = RoundedCornerShape(16.dp)
+    val cardSmall = RoundedCornerShape(12.dp)
+    val pill = RoundedCornerShape(50)
+    val button = RoundedCornerShape(12.dp)
+    val dialog = RoundedCornerShape(24.dp)
+}
+
+// 渐变色刷
+object AppGradients {
+    val dashboard = Brush.linearGradient(
+        colors = listOf(DashboardGradientStart, DashboardGradientEnd)
+    )
+    val dashboardVertical = Brush.verticalGradient(
+        colors = listOf(DashboardGradientStart, DashboardGradientEnd)
+    )
+    val cardSurface = Brush.verticalGradient(
+        colors = listOf(
+            Color.White,
+            Color(0xFFF8F9FA)
+        )
+    )
+}
+
+// 自定义颜色扩展，方便在 composable 中通过 AppColors.xxx 访问
+object AppColors {
+    val available: Color = StatusAvailable
+    val partial: Color = StatusPartial
+    val unavailable: Color = StatusUnavailable
+    val pending: Color = StatusPending
+}
+
 @Composable
 fun HouseMonitorTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
@@ -39,7 +76,6 @@ fun HouseMonitorTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }

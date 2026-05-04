@@ -5,15 +5,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -22,6 +19,7 @@ import com.housemonitor.data.model.ChangeSummary
 import com.housemonitor.data.model.ChangeType
 import com.housemonitor.data.model.MonitorRecord
 import com.housemonitor.data.model.Property
+import com.housemonitor.ui.theme.AppColors
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -36,135 +34,165 @@ fun PropertyCard(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
-    Card(
+    // 计算状态色
+    val statusColor = when {
+        property.lastCheckedAt == 0L || latestRecord == null -> AppColors.pending
+        else -> {
+            try {
+                val dates = com.google.gson.Gson().fromJson<List<String>>(
+                    latestRecord.unavailableDates,
+                    object : com.google.gson.reflect.TypeToken<List<String>>() {}.type
+                ) ?: emptyList()
+                when {
+                    dates.isEmpty() -> AppColors.available
+                    dates.size <= 3 -> AppColors.partial
+                    else -> AppColors.unavailable
+                }
+            } catch (_: Exception) { AppColors.pending }
+        }
+    }
+
+    ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            // 标题行
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        Row(modifier = Modifier.fillMaxWidth()) {
+            // 左侧状态色条
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .height(IntrinsicSize.Max)
+                    .background(statusColor)
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 12.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
             ) {
-                Column(
-                    modifier = Modifier.weight(1f)
+                // 标题行
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = property.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    val platformLabel = when (property.platform) {
-                        "meituan" -> "美团民宿"
-                        "tujia" -> "途家"
-                        "xiaozhu" -> "小猪民宿"
-                        "muniao" -> "木鸟民宿"
-                        else -> "其他"
-                    }
-                    Text(
-                        text = platformLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    if (property.description.isNotEmpty()) {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = property.description,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            text = property.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        val platformLabel = when (property.platform) {
+                            "meituan" -> "美团民宿"
+                            "tujia" -> "途家"
+                            "xiaozhu" -> "小猪民宿"
+                            "muniao" -> "木鸟民宿"
+                            else -> "其他"
+                        }
+                        Text(
+                            text = platformLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        if (property.description.isNotEmpty()) {
+                            Text(
+                                text = property.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
+
+                    // 状态指示器
+                    StatusIndicator(isActive = property.isActive)
                 }
 
-                // 状态指示器
-                StatusIndicator(isActive = property.isActive)
-            }
+                Spacer(modifier = Modifier.height(8.dp))
 
-            Spacer(modifier = Modifier.height(12.dp))
+                // URL显示
+                Text(
+                    text = property.url,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
 
-            // URL显示
-            Text(
-                text = property.url,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
+                Spacer(modifier = Modifier.height(8.dp))
 
-            Spacer(modifier = Modifier.height(12.dp))
+                // 状态信息区域
+                StatusSection(property.lastCheckedAt, latestRecord)
 
-            // 状态信息区域
-            StatusSection(property.lastCheckedAt, latestRecord)
+                Spacer(modifier = Modifier.height(8.dp))
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // 底部信息行
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 时间信息
-                Column {
+                // 底部信息行
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 时间信息
                     Text(
-                        text = if (property.lastCheckedAt > 0) "最近检查" else "创建时间",
+                        text = if (property.lastCheckedAt > 0)
+                            "最近检查 ${formatTimestamp(property.lastCheckedAt)}"
+                        else
+                            "创建于 ${formatTimestamp(property.createdAt)}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Text(
-                        text = if (property.lastCheckedAt > 0)
-                            formatTimestamp(property.lastCheckedAt)
-                        else
-                            formatTimestamp(property.createdAt),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
 
-                // 操作按钮
-                Row {
-                    IconButton(
-                        onClick = onRefresh,
-                        enabled = property.isActive
+                    // 操作按钮
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(
-                            Icons.Default.Refresh,
-                            contentDescription = "刷新",
-                            tint = if (property.isActive)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                        IconButton(
+                            onClick = onRefresh,
+                            enabled = property.isActive,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Refresh,
+                                contentDescription = "刷新",
+                                modifier = Modifier.size(18.dp),
+                                tint = if (property.isActive)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                        }
 
-                    IconButton(
-                        onClick = onToggleActive
-                    ) {
-                        Icon(
-                            if (property.isActive) Icons.Default.Notifications else Icons.Default.PlayArrow,
-                            contentDescription = if (property.isActive) "暂停监控" else "开始监控",
-                            tint = if (property.isActive)
-                                MaterialTheme.colorScheme.secondary
-                            else
-                                MaterialTheme.colorScheme.primary
-                        )
-                    }
+                        IconButton(
+                            onClick = onToggleActive,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                if (property.isActive) Icons.Default.NotificationsOff else Icons.Default.PlayArrow,
+                                contentDescription = if (property.isActive) "暂停监控" else "开始监控",
+                                modifier = Modifier.size(18.dp),
+                                tint = if (property.isActive)
+                                    MaterialTheme.colorScheme.secondary
+                                else
+                                    MaterialTheme.colorScheme.primary
+                            )
+                        }
 
-                    IconButton(
-                        onClick = { showDeleteDialog = true }
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "删除",
-                            tint = MaterialTheme.colorScheme.error
-                        )
+                        IconButton(
+                            onClick = { showDeleteDialog = true },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "删除",
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
                     }
                 }
             }
@@ -187,9 +215,7 @@ fun PropertyCard(
                 }
             },
             dismissButton = {
-                TextButton(
-                    onClick = { showDeleteDialog = false }
-                ) {
+                TextButton(onClick = { showDeleteDialog = false }) {
                     Text("取消")
                 }
             }
@@ -200,7 +226,7 @@ fun PropertyCard(
 @Composable
 fun StatusIndicator(isActive: Boolean) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(8.dp),
         color = if (isActive)
             MaterialTheme.colorScheme.primaryContainer
         else
@@ -208,8 +234,9 @@ fun StatusIndicator(isActive: Boolean) {
     ) {
         Text(
             text = if (isActive) "监控中" else "已暂停",
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
             style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Medium,
             color = if (isActive)
                 MaterialTheme.colorScheme.onPrimaryContainer
             else
@@ -222,29 +249,7 @@ fun StatusIndicator(isActive: Boolean) {
 private fun StatusSection(lastCheckedAt: Long, latestRecord: MonitorRecord?) {
     val record = latestRecord
     if (record == null || lastCheckedAt == 0L) {
-        // 从未检查过
-        Surface(
-            shape = RoundedCornerShape(4.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.Schedule,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "尚未检查",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        StatusTag(icon = Icons.Default.Schedule, text = "尚未检查", color = AppColors.pending)
         return
     }
 
@@ -262,35 +267,20 @@ private fun StatusSection(lastCheckedAt: Long, latestRecord: MonitorRecord?) {
     val hasChange = changeSummary.changeType != ChangeType.NO_CHANGE.name
     val changeType = try { ChangeType.valueOf(changeSummary.changeType) } catch (_: Exception) { ChangeType.NO_CHANGE }
 
-    Column(
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         // 当前状态行
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // 状态标签
-            val (statusText, statusColor) = when {
-                unavailableCount == 0 -> "全部可订" to Color(0xFF4CAF50)
-                unavailableCount <= 3 -> "部分无房" to Color(0xFFFF9800)
-                else -> "全部无房" to Color(0xFFF44336)
+            val (icon, statusText, statusColor) = when {
+                unavailableCount == 0 -> Triple(Icons.Default.CheckCircle, "全部可订", AppColors.available)
+                unavailableCount <= 3 -> Triple(Icons.Default.Warning, "部分无房", AppColors.partial)
+                else -> Triple(Icons.Default.Cancel, "全部无房", AppColors.unavailable)
             }
-            Surface(
-                shape = RoundedCornerShape(4.dp),
-                color = statusColor.copy(alpha = 0.12f)
-            ) {
-                Text(
-                    text = statusText,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Medium,
-                    color = statusColor
-                )
-            }
+            StatusTag(icon = icon, text = statusText, color = statusColor)
 
-            // 无房日期数
             if (unavailableCount > 0) {
                 Text(
                     text = "$unavailableCount 天无房",
@@ -300,35 +290,23 @@ private fun StatusSection(lastCheckedAt: Long, latestRecord: MonitorRecord?) {
             }
         }
 
-        // 状态变化行（仅在有变化时显示）
+        // 状态变化行
         if (hasChange) {
             Spacer(modifier = Modifier.height(6.dp))
             when (changeType) {
                 ChangeType.BECAME_UNAVAILABLE -> {
-                    ChangeIndicator(
-                        text = "新增 ${changeSummary.newlyUnavailable.size} 天无房",
-                        color = Color(0xFFF44336)
-                    )
+                    ChangeIndicator(text = "新增 ${changeSummary.newlyUnavailable.size} 天无房", color = AppColors.unavailable)
                 }
                 ChangeType.BECAME_AVAILABLE -> {
-                    ChangeIndicator(
-                        text = "释放 ${changeSummary.newlyAvailable.size} 天有房",
-                        color = Color(0xFF4CAF50)
-                    )
+                    ChangeIndicator(text = "释放 ${changeSummary.newlyAvailable.size} 天有房", color = AppColors.available)
                 }
                 ChangeType.PARTIAL_CHANGE -> {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        ChangeIndicator(
-                            text = "新增 ${changeSummary.newlyUnavailable.size} 天无房",
-                            color = Color(0xFFF44336)
-                        )
-                        ChangeIndicator(
-                            text = "释放 ${changeSummary.newlyAvailable.size} 天有房",
-                            color = Color(0xFF4CAF50)
-                        )
+                        ChangeIndicator(text = "新增 ${changeSummary.newlyUnavailable.size} 天无房", color = AppColors.unavailable)
+                        ChangeIndicator(text = "释放 ${changeSummary.newlyAvailable.size} 天有房", color = AppColors.available)
                     }
                 }
                 else -> {}
@@ -338,10 +316,35 @@ private fun StatusSection(lastCheckedAt: Long, latestRecord: MonitorRecord?) {
 }
 
 @Composable
-private fun ChangeIndicator(text: String, color: Color) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically
+private fun StatusTag(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, color: Color) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = color.copy(alpha = 0.1f)
     ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = color
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium,
+                color = color
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChangeIndicator(text: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
                 .size(6.dp)

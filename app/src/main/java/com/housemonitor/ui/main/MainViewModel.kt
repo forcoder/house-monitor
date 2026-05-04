@@ -2,6 +2,8 @@ package com.housemonitor.ui.main
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.housemonitor.data.model.MonitorRecord
+import com.housemonitor.data.repository.MonitorRepository
 import com.housemonitor.data.repository.PropertyRepository
 import com.housemonitor.data.repository.UserSettingsRepository
 import com.housemonitor.service.WorkManagerService
@@ -14,7 +16,8 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     private val propertyRepository: PropertyRepository,
     private val userSettingsRepository: UserSettingsRepository,
-    private val workManagerService: WorkManagerService
+    private val workManagerService: WorkManagerService,
+    private val monitorRepository: MonitorRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -30,10 +33,15 @@ class MainViewModel @Inject constructor(
 
     private fun loadData() {
         viewModelScope.launch {
-            // 加载房源列表
+            // 加载房源列表，并为每个房源附加最新监控记录
             propertyRepository.getAllProperties().collect { properties ->
+                val latestRecords = mutableMapOf<String, MonitorRecord?>()
+                for (property in properties) {
+                    latestRecords[property.id] = monitorRepository.getLastSuccessRecord(property.id)
+                }
                 _uiState.value = _uiState.value.copy(
                     properties = properties,
+                    latestRecords = latestRecords,
                     isLoading = false
                 )
             }
@@ -157,5 +165,6 @@ data class MainUiState(
     val userSettings: com.housemonitor.data.model.UserSettings? = null,
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val latestRecords: Map<String, MonitorRecord?> = emptyMap()
 )

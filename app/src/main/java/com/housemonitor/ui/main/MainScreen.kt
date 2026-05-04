@@ -103,6 +103,7 @@ fun MainScreen(
                         items(uiState.properties) { property ->
                             PropertyCard(
                                 property = property,
+                                latestRecord = uiState.latestRecords[property.id],
                                 onToggleActive = { viewModel.togglePropertyActive(property.id) },
                                 onDelete = { viewModel.removeProperty(property.id) }
                             )

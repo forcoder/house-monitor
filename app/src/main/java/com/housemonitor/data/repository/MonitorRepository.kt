@@ -66,4 +66,12 @@ class MonitorRepository @Inject constructor(
     suspend fun deleteRecordsByPropertyId(propertyId: String) {
         monitorRecordDao.deleteRecordsByPropertyId(propertyId)
     }
+
+    suspend fun getRecentRecordsByPropertyId(propertyId: String, limit: Int = 10): List<MonitorRecord> {
+        return monitorRecordDao.getRecentRecordsByPropertyId(propertyId, limit)
+    }
+
+    suspend fun cleanupOldRecordsByPropertyId(propertyId: String) {
+        monitorRecordDao.cleanupOldRecordsByPropertyId(propertyId)
+    }
 }

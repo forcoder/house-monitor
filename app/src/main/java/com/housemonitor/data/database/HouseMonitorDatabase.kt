@@ -13,7 +13,7 @@ import com.housemonitor.data.model.UserSettings
 
 @Database(
     entities = [Property::class, MonitorRecord::class, UserSettings::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class HouseMonitorDatabase : RoomDatabase() {
@@ -33,6 +33,14 @@ abstract class HouseMonitorDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE monitor_records ADD COLUMN changeSummary TEXT NOT NULL DEFAULT ''"
+                )
+            }
+        }
+
         fun getDatabase(context: Context): HouseMonitorDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -40,7 +48,7 @@ abstract class HouseMonitorDatabase : RoomDatabase() {
                     HouseMonitorDatabase::class.java,
                     "house_monitor_database"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                 INSTANCE = instance
                 instance

@@ -20,5 +20,6 @@ data class MonitorRecord(
     val checkDate: String, // yyyy-MM-dd格式
     val unavailableDates: String, // JSON格式存储日期列表
     val checkedAt: Long = System.currentTimeMillis(),
-    val status: String = "success" // success, failed, timeout
+    val status: String = "success", // success, failed, timeout
+    val changeSummary: String = "" // JSON: {newlyUnavailable, newlyAvailable, changeType}
 )

@@ -29,4 +29,10 @@ interface MonitorRecordDao {
 
     @Query("DELETE FROM monitor_records WHERE propertyId = :propertyId")
     suspend fun deleteRecordsByPropertyId(propertyId: String)
+
+    @Query("SELECT * FROM monitor_records WHERE propertyId = :propertyId ORDER BY checkedAt DESC LIMIT :limit")
+    suspend fun getRecentRecordsByPropertyId(propertyId: String, limit: Int = 10): List<MonitorRecord>
+
+    @Query("DELETE FROM monitor_records WHERE propertyId = :propertyId AND id NOT IN (SELECT id FROM monitor_records WHERE propertyId = :propertyId ORDER BY checkedAt DESC LIMIT 10)")
+    suspend fun cleanupOldRecordsByPropertyId(propertyId: String)
 }

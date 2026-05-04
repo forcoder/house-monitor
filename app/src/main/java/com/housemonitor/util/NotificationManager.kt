@@ -165,6 +165,51 @@ class NotificationManager @Inject constructor(
         PARTIAL_CHANGE       // 部分日期状态变化
     }
 
+    /**
+     * 显示详细变化通知（带变化摘要）
+     */
+    fun showDetailedChangeNotification(
+        propertyName: String,
+        newlyUnavailable: List<String>,
+        newlyAvailable: List<String>
+    ) {
+        val hasNewUnavailable = newlyUnavailable.isNotEmpty()
+        val hasNewAvailable = newlyAvailable.isNotEmpty()
+
+        if (!hasNewUnavailable && !hasNewAvailable) return
+
+        val notificationId = Random.nextInt(1000, 9999)
+        val title = "房源变化提醒"
+        val contentText = buildString {
+            append(propertyName).append("：")
+            if (hasNewUnavailable) append("${newlyUnavailable.size}个日期变为无房")
+            if (hasNewUnavailable && hasNewAvailable) append("，")
+            if (hasNewAvailable) append("${newlyAvailable.size}个日期变为有房")
+        }
+
+        val intent = Intent(context, HistoryActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("notification_property", propertyName)
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            context, notificationId, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(title)
+            .setContentText(contentText)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setGroup(GROUP_KEY_PROPERTY_NOTIFICATIONS)
+            .build()
+
+        notificationManager.notify(notificationId, notification)
+    }
+
     private fun generateNotificationText(propertyName: String, dates: List<String>): String {
         return when {
             dates.size == 1 -> "$propertyName 在 ${dates.first()} 无房"

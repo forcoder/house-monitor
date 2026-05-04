@@ -42,15 +42,14 @@ jobs:
         retention-days: 30
 
   # ─────────────────────────────────────────
-  # Job 2: 构建 Release APK（打 tag 时）
+  # Job 2: 构建 Release APK + 上传 + 发布（打 tag 时）
   # ─────────────────────────────────────────
-  build-release:
-    name: Build Release APK
+  build-release-and-publish:
+    name: Build Release & Publish
     runs-on: windows-latest
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     outputs:
       version_name: ${{ steps.version.outputs.version_name }}
-      apk_path: app/build/outputs/apk/release/app-release.apk
 
     steps:
     - uses: actions/checkout@v5
@@ -72,36 +71,10 @@ jobs:
         Write-Output "version_name=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
         Write-Output "VERSION=$version"
 
-    - name: Upload Release APK as Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: release-apk
-        path: app/build/outputs/apk/release/app-release.apk
-        retention-days: 90
-
-  # ─────────────────────────────────────────
-  # Job 3: 上传到 shz.al
-  # ─────────────────────────────────────────
-  upload-shzal:
-    name: Upload to shz.al
-    runs-on: windows-latest
-    timeout-minutes: 10
-    needs: build-release
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-
-    steps:
-    - name: Download Release APK
-      uses: actions/download-artifact@v4
-      with:
-        name: release-apk
-        path: ./apk-output
-        run-id: ${{ github.run_id }}
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-
     - name: Calculate MD5 and prepare version-info.json
       id: apk
       run: |
-        $apkFile = Get-ChildItem -Path "./apk-output" -Filter "*.apk" | Select-Object -First 1
+        $apkFile = Get-ChildItem -Path "app\build\outputs\apk\release" -Filter "*.apk" | Select-Object -First 1
         if ($null -eq $apkFile) {
           Write-Output "Error: No APK file found!"
           exit 1
@@ -115,7 +88,7 @@ jobs:
         Write-Output "size=$size" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
         Write-Output "path=$($apkFile.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
-        $versionName = "${{ needs.build-release.outputs.version_name }}"
+        $versionName = "${{ steps.version.outputs.version_name }}"
         $date = Get-Date -Format "yyyy-MM-dd"
         $versionInfo = @{
           versionCode = 2
@@ -178,7 +151,7 @@ jobs:
         $resp = Invoke-WebRequest -Uri "https://shz.al" -Method POST -Form @{
           n = "houseMonitorApk2"
           e = "7d"
-          filename = "house-monitor-${{ needs.build-release.outputs.version_name }}.apk"
+          filename = "house-monitor-${{ steps.version.outputs.version_name }}.apk"
           c = Get-Item "${{ steps.apk.outputs.path }}"
           s = $env:SHZAL_PASSWORD
         } -UseBasicParsing
@@ -190,19 +163,26 @@ jobs:
         Write-Output "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
         Write-Output "| 字段 | 值 |" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
         Write-Output "|------|-----|" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
-        Write-Output "| 版本 | v${{ needs.build-release.outputs.version_name }} |" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+        Write-Output "| 版本 | v${{ steps.version.outputs.version_name }} |" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
         Write-Output "| MD5 | ${{ steps.apk.outputs.md5 }} |" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
         Write-Output "| 版本信息 | https://shz.al/~houseMonitorLog2 |" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
         Write-Output "| APK 下载 | https://shz.al/~houseMonitorApk2 |" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
 
+    - name: Upload Release APK for GitHub Release
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-apk
+        path: app/build/outputs/apk/release/app-release.apk
+        retention-days: 90
+
   # ─────────────────────────────────────────
-  # Job 4: 创建 GitHub Release
+  # Job 3: 创建 GitHub Release
   # ─────────────────────────────────────────
   create-github-release:
     name: Create GitHub Release
     runs-on: windows-latest
     timeout-minutes: 5
-    needs: [build-release, upload-shzal]
+    needs: build-release-and-publish
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
 
     steps:
@@ -211,15 +191,13 @@ jobs:
       with:
         name: release-apk
         path: ./apk-output
-        run-id: ${{ github.run_id }}
-        github-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        name: "房源监控 v${{ needs.build-release.outputs.version_name }}"
+        name: "房源监控 v${{ needs.build-release-and-publish.outputs.version_name }}"
         body: |
-          ## 📦 房源监控 v${{ needs.build-release.outputs.version_name }}
+          ## 📦 房源监控 v${{ needs.build-release-and-publish.outputs.version_name }}
 
           ### 下载
           - 📥 **APK 下载（shz.al）：** https://shz.al/~houseMonitorApk2

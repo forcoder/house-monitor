@@ -19,7 +19,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.housemonitor.BuildConfig
 import com.housemonitor.R
 import com.housemonitor.data.model.UpdateStatus
+import com.housemonitor.ui.settings.DownloadProgressDialog
+import com.housemonitor.ui.settings.InstallPromptDialog
 import com.housemonitor.ui.settings.SettingsViewModel
+import com.housemonitor.ui.settings.UpdateDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

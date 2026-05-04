@@ -44,7 +44,11 @@ class PropertyMonitorWorker @AssistedInject constructor(
             } else {
                 val properties = propertyRepository.getActiveProperties().first()
                 properties.forEach { property ->
-                    monitorUseCase.execute(property, checkDate ?: getToday())
+                    try {
+                        monitorUseCase.execute(property, checkDate ?: getToday())
+                    } catch (_: Exception) {
+                        // 单个失败不影响其他
+                    }
                     kotlinx.coroutines.delay(2000)
                 }
             }

@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -35,6 +36,7 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     // OTA 状态
     val updateStatus by viewModel.updateStatus.collectAsState()
@@ -208,6 +210,49 @@ fun SettingsScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
+
+            // 数据管理
+            SettingsSection(
+                title = "数据管理",
+                icon = Icons.Default.Info
+            ) {
+                SettingsItem(
+                    title = "导出数据",
+                    subtitle = "将房源配置导出为 JSON 文件分享保存",
+                    onClick = {
+                        val json = viewModel.exportPropertiesToJson()
+                        if (json != null) {
+                            viewModel.shareBackupText(json)
+                        }
+                    }
+                )
+
+                SettingsItem(
+                    title = "导入数据",
+                    subtitle = "从备份 JSON 恢复房源配置（先复制 JSON 文本）",
+                    onClick = {
+                        try {
+                            val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
+                            val clipData = clipboard?.primaryClip
+                            if (clipData != null && clipData.itemCount > 0) {
+                                val text = clipData.getItemAt(0).text?.toString()
+                                if (!text.isNullOrBlank()) {
+                                    val count = viewModel.importPropertiesFromJson(text)
+                                    if (count >= 0) {
+                                        // 显示成功消息
+                                    }
+                                }
+                            }
+                        } catch (_: Exception) { }
+                    }
+                )
+
+                SettingsItem(
+                    title = "备份说明",
+                    subtitle = "Android 自动备份已开启，重装后数据自动恢复",
+                    onClick = { }
+                )
+            }
 
             // 关于信息
             SettingsSection(

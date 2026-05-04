@@ -14,6 +14,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -38,19 +39,26 @@ class MonitorUseCase @Inject constructor(
         if (!property.isActive) return null
 
         try {
-            val unavailableDates = withContext(Dispatchers.Main) {
-                val parser = platformParserFactory.getParser(property.platform)
-                val meituanWebView = MeituanWebView(context, parser)
-                meituanWebView.initialize()
+            // 整个检查流程限时 30 秒，避免无限等待
+            val unavailableDates = withTimeoutOrNull(30_000L) {
+                withContext(Dispatchers.Main) {
+                    val parser = platformParserFactory.getParser(property.platform)
+                    val meituanWebView = MeituanWebView(context, parser)
+                    meituanWebView.initialize()
 
-                try {
-                    meituanWebView.loadUrl(property.url)
-                    delay(8000)
-                    meituanWebView.evaluateCalendarStatus()
-                } finally {
-                    meituanWebView.destroy()
+                    try {
+                        // 页面加载限时 15 秒
+                        withTimeoutOrNull(15_000L) {
+                            meituanWebView.loadUrl(property.url)
+                        }
+                        // 等待页面渲染完成
+                        delay(3000)
+                        meituanWebView.evaluateCalendarStatus()
+                    } finally {
+                        meituanWebView.destroy()
+                    }
                 }
-            }
+            } ?: emptyList() // 超时时返回空列表
 
             val previousRecord = monitorRepository.getLastSuccessRecord(property.id)
             val previousDates = previousRecord?.let {

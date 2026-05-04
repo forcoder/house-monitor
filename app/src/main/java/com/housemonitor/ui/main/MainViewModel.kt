@@ -128,11 +128,9 @@ class MainViewModel @Inject constructor(
             try {
                 val result = monitorUseCase.execute(property)
                 if (result != null) {
-                    // 更新该房源的最新记录
                     val updatedRecords = _uiState.value.latestRecords.toMutableMap()
                     updatedRecords[propertyId] = result.record
-                    // 更新房源的 lastCheckedAt
-                        val updatedProperties = _uiState.value.properties.map {
+                    val updatedProperties = _uiState.value.properties.map {
                         if (it.id == propertyId) it.copy(lastCheckedAt = System.currentTimeMillis()) else it
                     }
                     _uiState.value = _uiState.value.copy(
@@ -140,6 +138,8 @@ class MainViewModel @Inject constructor(
                         properties = updatedProperties
                     )
                 }
+            } catch (e: Exception) {
+                // 检查失败，checkingIds 仍需在 finally 中移除
             } finally {
                 _checkingIds.value = _checkingIds.value - propertyId
             }
@@ -155,29 +155,33 @@ class MainViewModel @Inject constructor(
         if (_checkingIds.value.isNotEmpty()) return // 已有检查在进行中
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isRefreshing = true)
+            try {
+                _uiState.value = _uiState.value.copy(isRefreshing = true)
 
-            activeProperties.forEach { property ->
-                _checkingIds.value = _checkingIds.value + property.id
-                try {
-                    val result = monitorUseCase.execute(property)
-                    if (result != null) {
-                        val updatedRecords = _uiState.value.latestRecords.toMutableMap()
-                        updatedRecords[property.id] = result.record
-                        val updatedProperties = _uiState.value.properties.map {
-                            if (it.id == property.id) it.copy(lastCheckedAt = System.currentTimeMillis()) else it
+                activeProperties.forEach { property ->
+                    _checkingIds.value = _checkingIds.value + property.id
+                    try {
+                        val result = monitorUseCase.execute(property)
+                        if (result != null) {
+                            val updatedRecords = _uiState.value.latestRecords.toMutableMap()
+                            updatedRecords[property.id] = result.record
+                            val updatedProperties = _uiState.value.properties.map {
+                                if (it.id == property.id) it.copy(lastCheckedAt = System.currentTimeMillis()) else it
+                            }
+                            _uiState.value = _uiState.value.copy(
+                                latestRecords = updatedRecords,
+                                properties = updatedProperties
+                            )
                         }
-                        _uiState.value = _uiState.value.copy(
-                            latestRecords = updatedRecords,
-                            properties = updatedProperties
-                        )
+                    } catch (e: Exception) {
+                        // 单个房源检查失败不影响其他房源
+                    } finally {
+                        _checkingIds.value = _checkingIds.value - property.id
                     }
-                } finally {
-                    _checkingIds.value = _checkingIds.value - property.id
                 }
+            } finally {
+                _uiState.value = _uiState.value.copy(isRefreshing = false)
             }
-
-            _uiState.value = _uiState.value.copy(isRefreshing = false)
         }
     }
 

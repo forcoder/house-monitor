@@ -35,7 +35,7 @@ jobs:
       run: .\gradlew.bat assembleDebug --no-daemon
 
     - name: Upload Debug APK as Artifact
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v4
       with:
         name: house-monitor-debug
         path: app/build/outputs/apk/debug/app-debug.apk
@@ -73,7 +73,7 @@ jobs:
         Write-Output "VERSION=$version"
 
     - name: Upload Release APK as Artifact
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v4
       with:
         name: release-apk
         path: app/build/outputs/apk/release/app-release.apk
@@ -91,10 +91,12 @@ jobs:
 
     steps:
     - name: Download Release APK
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@v4
       with:
         name: release-apk
         path: ./apk-output
+        run-id: ${{ github.run_id }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Calculate MD5 and prepare version-info.json
       id: apk
@@ -205,10 +207,12 @@ jobs:
 
     steps:
     - name: Download Release APK
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@v4
       with:
         name: release-apk
         path: ./apk-output
+        run-id: ${{ github.run_id }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2

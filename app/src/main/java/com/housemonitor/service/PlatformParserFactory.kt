@@ -14,7 +14,7 @@ class PlatformParserFactory @Inject constructor() {
 
     fun getParser(platformId: String): PlatformParser {
         return parsers.find { it.platformId == platformId }
-            ?: parsers.first()
+            ?: throw IllegalArgumentException("Unknown platform: $platformId")
     }
 
     fun detectPlatform(url: String): String {

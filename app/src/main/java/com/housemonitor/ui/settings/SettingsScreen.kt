@@ -12,10 +12,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.housemonitor.BuildConfig
+import com.housemonitor.R
+import com.housemonitor.data.model.UpdateStatus
 import com.housemonitor.ui.settings.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -25,6 +28,32 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    // OTA 状态
+    val updateStatus by viewModel.updateStatus.collectAsState()
+    val availableUpdate by viewModel.availableUpdate.collectAsState()
+    val downloadProgress by viewModel.downloadProgress.collectAsState()
+
+    // Dialog 显示控制
+    var showUpdateDialog by remember { mutableStateOf(false) }
+    var showDownloadDialog by remember { mutableStateOf(false) }
+    var showInstallDialog by remember { mutableStateOf(false) }
+
+    // 根据状态自动显示弹窗
+    LaunchedEffect(updateStatus) {
+        when (updateStatus) {
+            UpdateStatus.UPDATE_AVAILABLE -> showUpdateDialog = true
+            UpdateStatus.DOWNLOADING -> showDownloadDialog = true
+            UpdateStatus.DOWNLOADED -> {
+                showDownloadDialog = false
+                showInstallDialog = true
+            }
+            UpdateStatus.FAILED -> {
+                showDownloadDialog = false
+            }
+            else -> {}
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -105,9 +134,18 @@ fun SettingsScreen(
                 )
 
                 SettingsItem(
-                    title = "检查更新",
-                    subtitle = "当前版本 ${BuildConfig.VERSION_NAME}",
-                    onClick = { /* TODO: trigger OTA check */ }
+                    title = stringResource(R.string.check_for_update),
+                    subtitle = when (updateStatus) {
+                        UpdateStatus.CHECKING -> stringResource(R.string.checking_update)
+                        UpdateStatus.DOWNLOADING -> "${stringResource(R.string.downloading_update)} ${(downloadProgress * 100).toInt()}%"
+                        UpdateStatus.UPDATE_AVAILABLE -> "${stringResource(R.string.update_available)}：${availableUpdate?.versionName ?: ""}"
+                        UpdateStatus.DOWNLOADED -> stringResource(R.string.download_complete)
+                        else -> "当前版本 ${BuildConfig.VERSION_NAME}"
+                    },
+                    onClick = { viewModel.checkForUpdate() },
+                    trailing = if (updateStatus == UpdateStatus.CHECKING) {
+                        { CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp) }
+                    } else null
                 )
 
                 SettingsItem(
@@ -130,6 +168,43 @@ fun SettingsScreen(
                     onClick = { /* TODO: navigate to history */ }
                 )
             }
+        }
+
+        // OTA 弹窗
+        if (showUpdateDialog && availableUpdate != null) {
+            UpdateDialog(
+                update = availableUpdate!!,
+                onDismiss = {
+                    showUpdateDialog = false
+                    viewModel.clearUpdateState()
+                },
+                onUpdate = {
+                    showUpdateDialog = false
+                    viewModel.startDownload()
+                }
+            )
+        }
+
+        if (showDownloadDialog) {
+            DownloadProgressDialog(
+                progress = downloadProgress,
+                onCancel = {
+                    showDownloadDialog = false
+                    viewModel.cancelDownload()
+                }
+            )
+        }
+
+        if (showInstallDialog) {
+            InstallPromptDialog(
+                onInstall = {
+                    showInstallDialog = false
+                    viewModel.triggerInstall()
+                },
+                onDismiss = {
+                    showInstallDialog = false
+                }
+            )
         }
     }
 }
@@ -179,7 +254,8 @@ fun SettingsSection(
 fun SettingsItem(
     title: String,
     subtitle: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    trailing: (@Composable () -> Unit)? = null
 ) {
     Surface(
         onClick = onClick,
@@ -205,12 +281,16 @@ fun SettingsItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Icon(
-                Icons.Default.ArrowBack,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            if (trailing != null) {
+                trailing()
+            } else {
+                Icon(
+                    Icons.Default.ArrowBack,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

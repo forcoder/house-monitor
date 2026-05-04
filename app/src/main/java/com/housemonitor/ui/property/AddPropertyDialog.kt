@@ -18,6 +18,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.housemonitor.service.PlatformParserFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,15 +34,26 @@ fun AddPropertyDialog(
     var showUrlExample by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
 
-    val platformOptions = listOf(
+    val platforms = listOf(
         "meituan" to "美团民宿",
-        "other" to "其他平台"
+        "tujia" to "途家",
+        "xiaozhu" to "小猪民宿",
+        "muniao" to "木鸟民宿"
     )
 
     val nameFocusRequester = remember { FocusRequester() }
+    val platformParserFactory = remember { PlatformParserFactory() }
 
     LaunchedEffect(Unit) {
         nameFocusRequester.requestFocus()
+    }
+
+    // URL 变化时自动检测平台
+    LaunchedEffect(url) {
+        if (url.isNotBlank()) {
+            val detected = platformParserFactory.detectPlatform(url)
+            selectedPlatform = detected
+        }
     }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -84,7 +96,7 @@ fun AddPropertyDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     OutlinedTextField(
-                        value = platformOptions.find { it.first == selectedPlatform }?.second ?: "美团民宿",
+                        value = platforms.find { it.first == selectedPlatform }?.second ?: "美团民宿",
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("平台") },
@@ -95,7 +107,7 @@ fun AddPropertyDialog(
                         expanded = platformDropdownExpanded,
                         onDismissRequest = { platformDropdownExpanded = false }
                     ) {
-                        platformOptions.forEach { (id, name) ->
+                        platforms.forEach { (id, name) ->
                             DropdownMenuItem(
                                 text = { Text(name) },
                                 onClick = {

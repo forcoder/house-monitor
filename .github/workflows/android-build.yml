@@ -67,9 +67,11 @@ jobs:
     - name: Get version
       id: version
       run: |
-        $version = Select-String -Path "app\build.gradle" -Pattern 'versionName\s+"([^"]+)"' | ForEach-Object { $_.Matches[0].Groups[1].Value }
-        Write-Output "version_name=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-        Write-Output "VERSION=$version"
+        $versionName = Select-String -Path "app\build.gradle" -Pattern 'versionName\s+"([^"]+)"' | ForEach-Object { $_.Matches[0].Groups[1].Value }
+        $versionCode = Select-String -Path "app\build.gradle" -Pattern 'versionCode\s+(\d+)' | ForEach-Object { $_.Matches[0].Groups[1].Value }
+        Write-Output "version_name=$versionName" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        Write-Output "version_code=$versionCode" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        Write-Output "VERSION=$versionName CODE=$versionCode"
 
     - name: Calculate MD5 and prepare version-info.json
       id: apk
@@ -91,7 +93,7 @@ jobs:
         $versionName = "${{ steps.version.outputs.version_name }}"
         $date = Get-Date -Format "yyyy-MM-dd"
         $versionInfo = @{
-          versionCode = 2
+          versionCode = ${{ steps.version.outputs.version_code }}
           versionName = $versionName
           releaseDate = $date
           fileSize = $size

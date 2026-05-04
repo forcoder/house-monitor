@@ -8,12 +8,12 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Update
-import androidx.compose.material3.Badge
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -78,6 +78,78 @@ fun SettingsScreen(
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
+            // 检查更新 — 放在最顶部，独立醒目区域
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                )
+            ) {
+                Surface(
+                    onClick = { viewModel.checkForUpdate() },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.01f)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Update,
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.check_for_update),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = when (updateStatus) {
+                                    UpdateStatus.CHECKING -> stringResource(R.string.checking_update)
+                                    UpdateStatus.DOWNLOADING -> "${stringResource(R.string.downloading_update)} ${(downloadProgress * 100).toInt()}%"
+                                    UpdateStatus.UPDATE_AVAILABLE -> "${stringResource(R.string.update_available)}：${availableUpdate?.versionName ?: ""}"
+                                    UpdateStatus.DOWNLOADED -> stringResource(R.string.download_complete)
+                                    UpdateStatus.FAILED -> "检查失败，请重试"
+                                    else -> "当前版本 ${BuildConfig.VERSION_NAME}"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (updateStatus == UpdateStatus.CHECKING) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        } else if (updateStatus == UpdateStatus.UPDATE_AVAILABLE) {
+                            Badge(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError
+                            ) {
+                                Text("!")
+                            }
+                        } else {
+                            Icon(
+                                Icons.Default.ArrowBack,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             // 监控设置
             SettingsSection(
                 title = "监控设置",
@@ -131,32 +203,6 @@ fun SettingsScreen(
                 title = "关于",
                 icon = Icons.Default.Info
             ) {
-                // 检查更新 — 放在最上面，更显眼
-                SettingsItem(
-                    title = stringResource(R.string.check_for_update),
-                    subtitle = when (updateStatus) {
-                        UpdateStatus.CHECKING -> stringResource(R.string.checking_update)
-                        UpdateStatus.DOWNLOADING -> "${stringResource(R.string.downloading_update)} ${(downloadProgress * 100).toInt()}%"
-                        UpdateStatus.UPDATE_AVAILABLE -> "${stringResource(R.string.update_available)}：${availableUpdate?.versionName ?: ""}"
-                        UpdateStatus.DOWNLOADED -> stringResource(R.string.download_complete)
-                        else -> "当前版本 ${BuildConfig.VERSION_NAME}"
-                    },
-                    onClick = { viewModel.checkForUpdate() },
-                    icon = Icons.Default.Update,
-                    trailing = if (updateStatus == UpdateStatus.CHECKING) {
-                        { CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp) }
-                    } else if (updateStatus == UpdateStatus.UPDATE_AVAILABLE) {
-                        {
-                            Badge(
-                                containerColor = MaterialTheme.colorScheme.error,
-                                contentColor = MaterialTheme.colorScheme.onError
-                            ) {
-                                Text("!")
-                            }
-                        }
-                    } else null
-                )
-
                 SettingsItem(
                     title = "应用版本",
                     subtitle = BuildConfig.VERSION_NAME,

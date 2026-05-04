@@ -36,6 +36,7 @@ fun MainScreen(
     onNavigateToSettings: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val checkingIds by viewModel.checkingIds.collectAsState()
     val scope = rememberCoroutineScope()
     var showAddDialog by remember { mutableStateOf(false) }
 
@@ -132,6 +133,7 @@ fun MainScreen(
                             PropertyCard(
                                 property = property,
                                 latestRecord = uiState.latestRecords[property.id],
+                                isChecking = checkingIds.contains(property.id),
                                 onToggleActive = { viewModel.togglePropertyActive(property.id) },
                                 onDelete = { viewModel.removeProperty(property.id) },
                                 onRefresh = { viewModel.refreshSingleProperty(property.id) }

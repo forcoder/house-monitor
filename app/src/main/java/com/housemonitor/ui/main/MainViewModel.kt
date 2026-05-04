@@ -6,6 +6,7 @@ import com.housemonitor.data.model.MonitorRecord
 import com.housemonitor.data.repository.MonitorRepository
 import com.housemonitor.data.repository.PropertyRepository
 import com.housemonitor.data.repository.UserSettingsRepository
+import com.housemonitor.service.MonitorUseCase
 import com.housemonitor.service.WorkManagerService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -17,7 +18,8 @@ class MainViewModel @Inject constructor(
     private val propertyRepository: PropertyRepository,
     private val userSettingsRepository: UserSettingsRepository,
     private val workManagerService: WorkManagerService,
-    private val monitorRepository: MonitorRepository
+    private val monitorRepository: MonitorRepository,
+    private val monitorUseCase: MonitorUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -26,6 +28,10 @@ class MainViewModel @Inject constructor(
     private val _navigationEvent = MutableSharedFlow<String>()
     val navigationEvent: SharedFlow<String> = _navigationEvent.asSharedFlow()
 
+    // 正在检查的房源 ID 集合
+    private val _checkingIds = MutableStateFlow<Set<String>>(emptySet())
+    val checkingIds: StateFlow<Set<String>> = _checkingIds.asStateFlow()
+
     init {
         loadData()
         initializeSettings()
@@ -33,7 +39,6 @@ class MainViewModel @Inject constructor(
 
     private fun loadData() {
         viewModelScope.launch {
-            // 加载房源列表，并为每个房源附加最新监控记录
             propertyRepository.getAllProperties().collect { properties ->
                 val latestRecords = mutableMapOf<String, MonitorRecord?>()
                 for (property in properties) {
@@ -48,7 +53,6 @@ class MainViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            // 加载用户设置
             userSettingsRepository.getUserSettings().collect { settings ->
                 _uiState.value = _uiState.value.copy(
                     userSettings = settings
@@ -71,7 +75,6 @@ class MainViewModel @Inject constructor(
             val result = propertyRepository.addProperty(name, url, description, platform)
             result.fold(
                 onSuccess = {
-                    // 成功添加后立即开始监控
                     workManagerService.scheduleImmediateMonitoring(it.id)
                 },
                 onFailure = {
@@ -89,7 +92,6 @@ class MainViewModel @Inject constructor(
             val result = propertyRepository.removeProperty(propertyId)
             result.fold(
                 onSuccess = {
-                    // 重新安排监控
                     workManagerService.schedulePeriodicMonitoring()
                 },
                 onFailure = {
@@ -107,7 +109,6 @@ class MainViewModel @Inject constructor(
             val newActive = current?.isActive != true
             propertyRepository.updatePropertyActive(propertyId, newActive)
             workManagerService.schedulePeriodicMonitoring()
-            // 刷新 UI 状态
             val updatedProperties = _uiState.value.properties.map {
                 if (it.id == propertyId) it.copy(isActive = newActive) else it
             }
@@ -115,17 +116,68 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun refreshAllProperties() {
+    /**
+     * 同步检查单个房源 — 立即执行，完成后更新 UI
+     */
+    fun refreshSingleProperty(propertyId: String) {
+        val property = _uiState.value.properties.find { it.id == propertyId } ?: return
+        if (_checkingIds.value.contains(propertyId)) return // 已经在检查中
+
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isRefreshing = true)
-            workManagerService.scheduleImmediateMonitoring()
-            _uiState.value = _uiState.value.copy(isRefreshing = false)
+            _checkingIds.value = _checkingIds.value + propertyId
+            try {
+                val result = monitorUseCase.execute(property)
+                if (result != null) {
+                    // 更新该房源的最新记录
+                    val updatedRecords = _uiState.value.latestRecords.toMutableMap()
+                    updatedRecords[propertyId] = result.record
+                    // 更新房源的 lastCheckedAt
+                        val updatedProperties = _uiState.value.properties.map {
+                        if (it.id == propertyId) it.copy(lastCheckedAt = System.currentTimeMillis()) else it
+                    }
+                    _uiState.value = _uiState.value.copy(
+                        latestRecords = updatedRecords,
+                        properties = updatedProperties
+                    )
+                }
+            } finally {
+                _checkingIds.value = _checkingIds.value - propertyId
+            }
         }
     }
 
-    fun refreshSingleProperty(propertyId: String) {
+    /**
+     * 同步检查所有活跃房源 — 逐个执行，每个完成后立即更新 UI
+     */
+    fun refreshAllProperties() {
+        val activeProperties = _uiState.value.properties.filter { it.isActive }
+        if (activeProperties.isEmpty()) return
+        if (_checkingIds.value.isNotEmpty()) return // 已有检查在进行中
+
         viewModelScope.launch {
-            workManagerService.scheduleImmediateMonitoring(propertyId)
+            _uiState.value = _uiState.value.copy(isRefreshing = true)
+
+            activeProperties.forEach { property ->
+                _checkingIds.value = _checkingIds.value + property.id
+                try {
+                    val result = monitorUseCase.execute(property)
+                    if (result != null) {
+                        val updatedRecords = _uiState.value.latestRecords.toMutableMap()
+                        updatedRecords[property.id] = result.record
+                        val updatedProperties = _uiState.value.properties.map {
+                            if (it.id == property.id) it.copy(lastCheckedAt = System.currentTimeMillis()) else it
+                        }
+                        _uiState.value = _uiState.value.copy(
+                            latestRecords = updatedRecords,
+                            properties = updatedProperties
+                        )
+                    }
+                } finally {
+                    _checkingIds.value = _checkingIds.value - property.id
+                }
+            }
+
+            _uiState.value = _uiState.value.copy(isRefreshing = false)
         }
     }
 

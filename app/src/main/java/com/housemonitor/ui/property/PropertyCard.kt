@@ -28,6 +28,7 @@ import java.util.*
 fun PropertyCard(
     property: Property,
     latestRecord: MonitorRecord? = null,
+    isChecking: Boolean = false,
     onToggleActive: () -> Unit = {},
     onDelete: () -> Unit = {},
     onRefresh: () -> Unit = {}
@@ -35,6 +36,7 @@ fun PropertyCard(
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     val statusColor = when {
+        isChecking -> AppColors.pending
         property.lastCheckedAt == 0L || latestRecord == null -> AppColors.pending
         else -> {
             try {
@@ -128,12 +130,12 @@ fun PropertyCard(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 // 状态信息
-                StatusSection(property.lastCheckedAt, latestRecord)
+                StatusSection(property.lastCheckedAt, latestRecord, isChecking)
 
                 Spacer(modifier = Modifier.height(10.dp))
 
                 // 分割线
-                HorizontalDivider(
+                Divider(
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
                     thickness = 0.5.dp
                 )
@@ -158,7 +160,7 @@ fun PropertyCard(
                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                         FilledTonalIconButton(
                             onClick = onRefresh,
-                            enabled = property.isActive,
+                            enabled = property.isActive && !isChecking,
                             modifier = Modifier.size(32.dp),
                             colors = IconButtonDefaults.filledTonalIconButtonColors(
                                 containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
@@ -168,7 +170,15 @@ fun PropertyCard(
                                     MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                             )
                         ) {
-                            Icon(Icons.Default.Refresh, contentDescription = "刷新", modifier = Modifier.size(16.dp))
+                            if (isChecking) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            } else {
+                                Icon(Icons.Default.Refresh, contentDescription = "刷新", modifier = Modifier.size(16.dp))
+                            }
                         }
 
                         FilledTonalIconButton(
@@ -247,7 +257,11 @@ fun StatusPill(isActive: Boolean) {
 }
 
 @Composable
-private fun StatusSection(lastCheckedAt: Long, latestRecord: MonitorRecord?) {
+private fun StatusSection(lastCheckedAt: Long, latestRecord: MonitorRecord?, isChecking: Boolean = false) {
+    if (isChecking) {
+        StatusTag(icon = Icons.Default.Sync, text = "检查中...", color = AppColors.pending)
+        return
+    }
     val record = latestRecord
     if (record == null || lastCheckedAt == 0L) {
         StatusTag(icon = Icons.Default.Schedule, text = "尚未检查", color = AppColors.pending)

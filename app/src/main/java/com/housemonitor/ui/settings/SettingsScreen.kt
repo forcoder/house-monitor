@@ -1,6 +1,7 @@
 package com.housemonitor.ui.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -17,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.housemonitor.BuildConfig
 import com.housemonitor.R
@@ -43,6 +45,7 @@ fun SettingsScreen(
     var showUpdateDialog by remember { mutableStateOf(false) }
     var showDownloadDialog by remember { mutableStateOf(false) }
     var showInstallDialog by remember { mutableStateOf(false) }
+    var showIntervalDialog by remember { mutableStateOf(false) }
 
     // 根据状态自动显示弹窗
     LaunchedEffect(updateStatus) {
@@ -167,10 +170,8 @@ fun SettingsScreen(
             ) {
                 SettingsItem(
                     title = "检查间隔",
-                    subtitle = "${uiState.userSettings?.checkInterval ?: 60} 分钟",
-                    onClick = {
-                        // 显示间隔选择对话框
-                    }
+                    subtitle = "${uiState.userSettings?.checkInterval ?: 5} 分钟",
+                    onClick = { showIntervalDialog = true }
                 )
 
                 SettingsItem(
@@ -263,6 +264,18 @@ fun SettingsScreen(
                 }
             )
         }
+
+        // 检查间隔选择对话框
+        if (showIntervalDialog) {
+            CheckIntervalDialog(
+                currentInterval = uiState.userSettings?.checkInterval ?: 5,
+                onDismiss = { showIntervalDialog = false },
+                onConfirm = { interval ->
+                    viewModel.updateCheckInterval(interval)
+                    showIntervalDialog = false
+                }
+            )
+        }
     }
 }
 
@@ -301,6 +314,83 @@ fun SettingsSection(
                 modifier = Modifier.padding(8.dp)
             ) {
                 content()
+            }
+        }
+    }
+}
+
+@Composable
+fun CheckIntervalDialog(
+    currentInterval: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit
+) {
+    val intervals = listOf(5, 10, 15, 30, 60, 120)
+    var selected by remember { mutableIntStateOf(currentInterval) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp)
+            ) {
+                Text(
+                    text = "检查间隔",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "选择房源监控的自动检查频率",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                intervals.forEach { interval ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selected = interval }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = selected == interval,
+                            onClick = { selected = interval }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = when (interval) {
+                                5 -> "5 分钟（推荐）"
+                                10 -> "10 分钟"
+                                15 -> "15 分钟"
+                                30 -> "30 分钟"
+                                60 -> "1 小时"
+                                120 -> "2 小时"
+                                else -> "$interval 分钟"
+                            },
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("取消")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(onClick = { onConfirm(selected) }) {
+                        Text("确定")
+                    }
+                }
             }
         }
     }

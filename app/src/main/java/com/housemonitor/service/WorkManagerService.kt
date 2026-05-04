@@ -19,7 +19,7 @@ class WorkManagerService @Inject constructor(
     suspend fun schedulePeriodicMonitoring() {
         val settings = userSettingsRepository.getUserSettingsSync()
         settings?.let {
-            val intervalMinutes = it.checkInterval.coerceAtLeast(15) // 最小15分钟
+            val intervalMinutes = it.checkInterval.coerceAtLeast(5) // 最小5分钟
 
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)

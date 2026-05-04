@@ -103,9 +103,15 @@ class MainViewModel @Inject constructor(
 
     fun togglePropertyActive(propertyId: String) {
         viewModelScope.launch {
-            propertyRepository.updatePropertyActive(propertyId, true)
-            // 重新安排监控
+            val current = _uiState.value.properties.find { it.id == propertyId }
+            val newActive = current?.isActive != true
+            propertyRepository.updatePropertyActive(propertyId, newActive)
             workManagerService.schedulePeriodicMonitoring()
+            // 刷新 UI 状态
+            val updatedProperties = _uiState.value.properties.map {
+                if (it.id == propertyId) it.copy(isActive = newActive) else it
+            }
+            _uiState.value = _uiState.value.copy(properties = updatedProperties)
         }
     }
 
@@ -114,6 +120,12 @@ class MainViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isRefreshing = true)
             workManagerService.scheduleImmediateMonitoring()
             _uiState.value = _uiState.value.copy(isRefreshing = false)
+        }
+    }
+
+    fun refreshSingleProperty(propertyId: String) {
+        viewModelScope.launch {
+            workManagerService.scheduleImmediateMonitoring(propertyId)
         }
     }
 

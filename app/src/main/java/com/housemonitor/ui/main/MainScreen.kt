@@ -105,7 +105,8 @@ fun MainScreen(
                                 property = property,
                                 latestRecord = uiState.latestRecords[property.id],
                                 onToggleActive = { viewModel.togglePropertyActive(property.id) },
-                                onDelete = { viewModel.removeProperty(property.id) }
+                                onDelete = { viewModel.removeProperty(property.id) },
+                                onRefresh = { viewModel.refreshSingleProperty(property.id) }
                             )
                         }
                     }

@@ -55,7 +55,8 @@ fun PropertyCard(
                     val platformLabel = when (property.platform) {
                         "meituan" -> "美团民宿"
                         "tujia" -> "途家"
-                        "fliggy" -> "飞猪"
+                        "xiaozhu" -> "小猪民宿"
+                        "muniao" -> "木鸟民宿"
                         else -> "其他"
                     }
                     Text(

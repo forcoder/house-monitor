@@ -7,6 +7,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.housemonitor.data.model.OtaUpdate
+import com.housemonitor.data.model.Property
 import com.housemonitor.data.model.UpdateStatus
 import com.housemonitor.data.repository.PropertyRepository
 import com.housemonitor.data.repository.UserSettingsRepository
@@ -157,7 +158,7 @@ class SettingsViewModel @Inject constructor(
     /**
      * 导出房源配置为 JSON 文本，返回 JSON 字符串
      */
-    fun exportPropertiesToJson(): String? {
+    suspend fun exportPropertiesToJson(): String? {
         return try {
             val properties = propertyRepository.getAllProperties().first()
             val backupData = mapOf(
@@ -184,7 +185,7 @@ class SettingsViewModel @Inject constructor(
      * 从 JSON 文本恢复房源配置
      * @return 成功导入的房源数量，-1 表示失败
      */
-    fun importPropertiesFromJson(json: String): Int {
+    suspend fun importPropertiesFromJson(json: String): Int {
         return try {
             val backup = com.google.gson.JsonParser.parseString(json).asJsonObject
             val propertiesArray = backup.getAsJsonArray("properties") ?: return -1
@@ -192,6 +193,7 @@ class SettingsViewModel @Inject constructor(
             val properties: List<Map<String, Any>> = com.google.gson.Gson().fromJson(propertiesArray, listType)
 
             var count = 0
+            val existing = propertyRepository.getAllProperties().first()
             properties.forEach { p ->
                 try {
                     val name = p["name"] as? String ?: return@forEach
@@ -200,16 +202,14 @@ class SettingsViewModel @Inject constructor(
                     val description = p["description"] as? String ?: ""
                     val isActive = (p["isActive"] as? Boolean) ?: true
 
-                    // 检查是否已存在相同 URL 的房源
-                    val existing = propertyRepository.getAllProperties().first()
                     if (existing.none { it.url == url }) {
-                        propertyRepository.addProperty(name, url, description, platform)
-                        // 更新激活状态
-                        val added = propertyRepository.getAllProperties().first().find { it.url == url }
-                        if (added != null && !isActive) {
-                            propertyRepository.updatePropertyActive(added.id, false)
+                        val result = propertyRepository.addProperty(name, url, description, platform)
+                        result.onSuccess { newProperty ->
+                            if (!isActive) {
+                                propertyRepository.updatePropertyActive(newProperty.id, false)
+                            }
                         }
-                        count++
+                        if (result.isSuccess) count++
                     }
                 } catch (_: Exception) { }
             }

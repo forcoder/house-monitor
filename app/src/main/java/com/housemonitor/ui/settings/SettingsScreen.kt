@@ -21,6 +21,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import com.housemonitor.BuildConfig
 import com.housemonitor.R
 import com.housemonitor.data.model.UpdateStatus
@@ -220,16 +222,18 @@ fun SettingsScreen(
                     title = "导出数据",
                     subtitle = "将房源配置导出为 JSON 文件分享保存",
                     onClick = {
-                        val json = viewModel.exportPropertiesToJson()
-                        if (json != null) {
-                            viewModel.shareBackupText(json)
+                        MainScope().launch {
+                            val json = viewModel.exportPropertiesToJson()
+                            if (json != null) {
+                                viewModel.shareBackupText(json)
+                            }
                         }
                     }
                 )
 
                 SettingsItem(
                     title = "导入数据",
-                    subtitle = "从备份 JSON 恢复房源配置（先复制 JSON 文本）",
+                    subtitle = "从剪贴板读取备份 JSON 恢复房源配置",
                     onClick = {
                         try {
                             val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
@@ -237,9 +241,8 @@ fun SettingsScreen(
                             if (clipData != null && clipData.itemCount > 0) {
                                 val text = clipData.getItemAt(0).text?.toString()
                                 if (!text.isNullOrBlank()) {
-                                    val count = viewModel.importPropertiesFromJson(text)
-                                    if (count >= 0) {
-                                        // 显示成功消息
+                                    kotlinx.coroutines.MainScope().launch {
+                                        val count = viewModel.importPropertiesFromJson(text)
                                     }
                                 }
                             }

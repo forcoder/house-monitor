@@ -5,6 +5,8 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.WorkerParameters
+import com.housemonitor.data.model.ChangeSummary
+import com.housemonitor.data.model.ChangeType
 import com.housemonitor.data.repository.MonitorRepository
 import com.housemonitor.data.repository.PropertyRepository
 import com.housemonitor.data.repository.UserSettingsRepository
@@ -93,12 +95,16 @@ class PropertyMonitorWorker @AssistedInject constructor(
             val previousRecord = monitorRepository.getLastSuccessRecord(propertyId)
             val previousDates = previousRecord?.let { monitorRepository.parseUnavailableDates(it.unavailableDates) } ?: emptyList()
 
+            // 计算变化摘要
+            val changeSummary = computeChangeSummary(previousDates, unavailableDates)
+
             // 保存监控记录
             monitorRepository.saveMonitorRecord(
                 propertyId = property.id,
                 checkDate = checkDate,
                 unavailableDates = unavailableDates,
-                status = "success"
+                status = "success",
+                changeSummary = changeSummary.toJson()
             )
 
             // 更新最后检查时间
@@ -107,10 +113,12 @@ class PropertyMonitorWorker @AssistedInject constructor(
             // 检查是否有状态变化并发送相应通知
             checkForStatusChanges(
                 property = property,
-                currentUnavailableDates = unavailableDates,
-                previousUnavailableDates = previousDates,
+                changeSummary = changeSummary,
                 userSettings = userSettingsRepository.getUserSettingsSync()
             )
+
+            // 清理旧记录（每房源只保留最近 10 条）
+            monitorRepository.cleanupOldRecordsByPropertyId(property.id)
 
         } catch (e: Exception) {
             // 记录失败状态
@@ -118,7 +126,8 @@ class PropertyMonitorWorker @AssistedInject constructor(
                 propertyId = property.id,
                 checkDate = checkDate,
                 unavailableDates = emptyList(),
-                status = "failed"
+                status = "failed",
+                changeSummary = ""
             )
         }
     }
@@ -128,54 +137,25 @@ class PropertyMonitorWorker @AssistedInject constructor(
      */
     private suspend fun checkForStatusChanges(
         property: com.housemonitor.data.model.Property,
-        currentUnavailableDates: List<String>,
-        previousUnavailableDates: List<String>,
+        changeSummary: ChangeSummary,
         userSettings: com.housemonitor.data.model.UserSettings?
     ) {
-        if (userSettings?.notificationEnabled != true) {
-            return
-        }
+        if (userSettings?.notificationEnabled != true) return
+        if (userSettings != null && isInQuietHours(userSettings)) return
+        if (changeSummary.changeType == ChangeType.NO_CHANGE.name) return
 
-        // 检查是否在免打扰时段
-        if (userSettings != null && isInQuietHours(userSettings)) {
-            return
+        val changeType = when (changeSummary.changeType) {
+            ChangeType.BECAME_UNAVAILABLE.name -> NotificationManager.StatusChangeType.BECAME_UNAVAILABLE
+            ChangeType.BECAME_AVAILABLE.name -> NotificationManager.StatusChangeType.BECAME_AVAILABLE
+            else -> NotificationManager.StatusChangeType.PARTIAL_CHANGE
         }
+        val dates = changeSummary.newlyUnavailable + changeSummary.newlyAvailable
 
-        // 计算状态变化
-        val newUnavailableDates = currentUnavailableDates - previousUnavailableDates
-        val noLongerUnavailableDates = previousUnavailableDates - currentUnavailableDates
-
-        when {
-            // 新的无房日期
-            newUnavailableDates.isNotEmpty() -> {
-                notificationManager.showStatusChangeNotification(
-                    propertyName = property.name,
-                    changeType = com.housemonitor.util.NotificationManager.StatusChangeType.BECAME_UNAVAILABLE,
-                    dates = newUnavailableDates
-                )
-            }
-            // 从不可用变为可用
-            noLongerUnavailableDates.isNotEmpty() -> {
-                notificationManager.showStatusChangeNotification(
-                    propertyName = property.name,
-                    changeType = com.housemonitor.util.NotificationManager.StatusChangeType.BECAME_AVAILABLE,
-                    dates = noLongerUnavailableDates
-                )
-            }
-            // 其他状态变化（例如部分日期状态改变）
-            else -> {
-                val changedDates = (currentUnavailableDates + previousUnavailableDates).distinct().filter {
-                    currentUnavailableDates.contains(it) != previousUnavailableDates.contains(it)
-                }
-                if (changedDates.isNotEmpty()) {
-                    notificationManager.showStatusChangeNotification(
-                        propertyName = property.name,
-                        changeType = com.housemonitor.util.NotificationManager.StatusChangeType.PARTIAL_CHANGE,
-                        dates = changedDates
-                    )
-                }
-            }
-        }
+        notificationManager.showStatusChangeNotification(
+            propertyName = property.name,
+            changeType = changeType,
+            dates = dates
+        )
     }
 
     private suspend fun monitorAllProperties(checkDate: String) {
@@ -203,6 +183,27 @@ class PropertyMonitorWorker @AssistedInject constructor(
         } else {
             // 跨天的时间段
             currentHour >= settings.quietHoursStart || currentHour < settings.quietHoursEnd
+        }
+    }
+
+    private fun computeChangeSummary(
+        previousDates: List<String>,
+        currentDates: List<String>
+    ): ChangeSummary {
+        val newlyUnavailable = currentDates - previousDates.toSet()
+        val newlyAvailable = previousDates - currentDates.toSet()
+
+        return when {
+            newlyUnavailable.isNotEmpty() && newlyAvailable.isNotEmpty() -> {
+                ChangeSummary(newlyUnavailable, newlyAvailable, ChangeType.PARTIAL_CHANGE.name)
+            }
+            newlyUnavailable.isNotEmpty() -> {
+                ChangeSummary(newlyUnavailable, emptyList(), ChangeType.BECAME_UNAVAILABLE.name)
+            }
+            newlyAvailable.isNotEmpty() -> {
+                ChangeSummary(emptyList(), newlyAvailable, ChangeType.BECAME_AVAILABLE.name)
+            }
+            else -> ChangeSummary.noChange()
         }
     }
 

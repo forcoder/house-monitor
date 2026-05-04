@@ -33,14 +33,16 @@ class MonitorRepository @Inject constructor(
         propertyId: String,
         checkDate: String,
         unavailableDates: List<String>,
-        status: String = "success"
+        status: String = "success",
+        changeSummary: String = ""
     ): Result<MonitorRecord> {
         return try {
             val record = MonitorRecord(
                 propertyId = propertyId,
                 checkDate = checkDate,
                 unavailableDates = gson.toJson(unavailableDates),
-                status = status
+                status = status,
+                changeSummary = changeSummary
             )
             monitorRecordDao.insertRecord(record)
             Result.success(record)

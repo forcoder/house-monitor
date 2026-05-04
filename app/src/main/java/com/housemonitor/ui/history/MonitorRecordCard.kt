@@ -129,7 +129,7 @@ fun MonitorRecordCard(
                         exit = shrinkVertically()
                     ) {
                         Column(modifier = Modifier.padding(top = 8.dp)) {
-                            HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f))
+                            Divider(color = Color.Gray.copy(alpha = 0.2f))
                             Spacer(modifier = Modifier.height(8.dp))
 
                             if (changeSummary.newlyUnavailable.isNotEmpty()) {
@@ -193,7 +193,7 @@ fun MonitorRecordCard(
                 }
             }
         }
-        HorizontalDivider(color = Color.Gray.copy(alpha = 0.15f))
+        Divider(color = Color.Gray.copy(alpha = 0.15f))
     }
 }
 

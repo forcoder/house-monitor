@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,14 +15,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.housemonitor.data.model.MonitorRecord
 import com.housemonitor.ui.property.AddPropertyDialog
 import com.housemonitor.ui.property.PropertyCard
 import com.housemonitor.ui.theme.AppColors
+import com.housemonitor.ui.theme.AppGradients
+import com.housemonitor.ui.theme.AppShapes
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,22 +47,20 @@ fun MainScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            LargeTopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column {
                         Text(
                             "房源监控",
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold
                         )
                         if (uiState.properties.isNotEmpty()) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Badge(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            ) {
-                                Text("${uiState.properties.size}")
-                            }
+                            Text(
+                                text = "${uiState.properties.count { it.isActive }} 个房源监控中",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 },
@@ -75,28 +78,24 @@ fun MainScreen(
                             Icon(Icons.Default.Refresh, contentDescription = "刷新")
                         }
                     }
-                    IconButton(
-                        onClick = { viewModel.refreshAllProperties() },
-                        enabled = !uiState.isRefreshing
-                    ) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = "全部检查")
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = "设置")
                     }
-                    TextButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("设置")
-                    }
-                    IconButton(onClick = { /* TODO: navigate to history */ }) {
-                        Icon(Icons.Default.List, contentDescription = "历史记录")
-                    }
-                }
+                },
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface
+                )
             )
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { showAddDialog = true },
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("添加房源") }
+                icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
+                text = { Text("添加房源") },
+                shape = AppShapes.button,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             )
         }
     ) { paddingValues ->
@@ -118,7 +117,7 @@ fun MainScreen(
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         item {
@@ -137,6 +136,9 @@ fun MainScreen(
                                 onDelete = { viewModel.removeProperty(property.id) },
                                 onRefresh = { viewModel.refreshSingleProperty(property.id) }
                             )
+                        }
+                        item {
+                            Spacer(modifier = Modifier.height(80.dp))
                         }
                     }
                 }
@@ -170,168 +172,211 @@ fun StatusSummaryCard(
     var availableCount = 0
     var partialCount = 0
     var unavailableCount = 0
+    var noRecordCount = 0
 
-    properties.filter { it.isActive && it.lastCheckedAt > 0 }.forEach { property ->
-        val record = latestRecords[property.id] ?: return@forEach
-        try {
-            val dates = com.google.gson.Gson().fromJson<List<String>>(
-                record.unavailableDates,
-                object : com.google.gson.reflect.TypeToken<List<String>>() {}.type
-            ) ?: emptyList()
-            when {
-                dates.isEmpty() -> availableCount++
-                dates.size <= 3 -> partialCount++
-                else -> unavailableCount++
+    properties.filter { it.isActive }.forEach { property ->
+        val record = latestRecords[property.id]
+        if (record == null || property.lastCheckedAt == 0L) {
+            noRecordCount++
+        } else {
+            try {
+                val dates = com.google.gson.Gson().fromJson<List<String>>(
+                    record.unavailableDates,
+                    object : com.google.gson.reflect.TypeToken<List<String>>() {}.type
+                ) ?: emptyList()
+                when {
+                    dates.isEmpty() -> availableCount++
+                    dates.size <= 3 -> partialCount++
+                    else -> unavailableCount++
+                }
+            } catch (_: Exception) {
+                noRecordCount++
             }
-        } catch (_: Exception) { /* skip */ }
+        }
     }
 
     val checkedTotal = availableCount + partialCount + unavailableCount
 
-    ElevatedCard(
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 4.dp)
+        shape = AppShapes.cardLarge,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
-                        )
-                    )
-                )
+                .background(AppGradients.dashboard)
+                .padding(20.dp)
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                // 标题行
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "状态概览",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+            // 标题行
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Home,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.9f),
+                        modifier = Modifier.size(20.dp)
                     )
-                    FilledTonalButton(
-                        onClick = onCheckAll,
-                        enabled = !isRefreshing && active > 0,
-                        shape = RoundedCornerShape(12.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
-                    ) {
-                        if (isRefreshing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                        } else {
-                            Icon(
-                                Icons.Default.PlayArrow,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                        }
-                        Text("全部检查", style = MaterialTheme.typography.labelMedium)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "状态概览",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+                FilledTonalButton(
+                    onClick = onCheckAll,
+                    enabled = !isRefreshing && active > 0,
+                    shape = AppShapes.pill,
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = Color.White.copy(alpha = 0.2f),
+                        contentColor = Color.White
+                    ),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    if (isRefreshing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                    } else {
+                        Icon(
+                            Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                    Text("全部检查", style = MaterialTheme.typography.labelLarge)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 超大数字仪表盘
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                DashboardStatItem(
+                    value = "$availableCount",
+                    label = "可订",
+                    subLabel = "套房源",
+                    color = Color(0xFF69F0AE)
+                )
+                DashboardStatItem(
+                    value = "$unavailableCount",
+                    label = "无房",
+                    subLabel = "套房源",
+                    color = Color(0xFFFF8A80)
+                )
+                DashboardStatItem(
+                    value = "$total",
+                    label = "总计",
+                    subLabel = "套房源",
+                    color = Color.White
+                )
+            }
+
+            // 状态分布条（仅在有检查数据时显示）
+            if (checkedTotal > 0) {
+                Spacer(modifier = Modifier.height(20.dp))
+
+                val availableRatio = availableCount.toFloat() / checkedTotal
+                val partialRatio = partialCount.toFloat() / checkedTotal
+                val unavailableRatio = unavailableCount.toFloat() / checkedTotal
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(Color.White.copy(alpha = 0.15f))
+                ) {
+                    if (availableRatio > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .weight(availableRatio)
+                                .fillMaxHeight()
+                                .background(Color(0xFF69F0AE))
+                        )
+                    }
+                    if (partialRatio > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .weight(partialRatio)
+                                .fillMaxHeight()
+                                .background(Color(0xFFFFD54F))
+                        )
+                    }
+                    if (unavailableRatio > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .weight(unavailableRatio)
+                                .fillMaxHeight()
+                                .background(Color(0xFFFF8A80))
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                // 大数字统计行
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    BigStatItem(label = "总房源", value = total, icon = Icons.Default.Home, color = MaterialTheme.colorScheme.onSurface)
-                    BigStatItem(label = "监控中", value = active, icon = Icons.Default.Visibility, color = MaterialTheme.colorScheme.primary)
-                    BigStatItem(label = "已检查", value = checked, icon = Icons.Default.CheckCircle, color = AppColors.available)
+                    LegendDot(color = Color(0xFF69F0AE), label = "可订", count = availableCount)
+                    LegendDot(color = Color(0xFFFFD54F), label = "部分", count = partialCount)
+                    LegendDot(color = Color(0xFFFF8A80), label = "无房", count = unavailableCount)
                 }
+            }
 
-                // 状态分布条（仅在有检查数据时显示）
-                if (checkedTotal > 0) {
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    val availableRatio = availableCount.toFloat() / checkedTotal
-                    val partialRatio = partialCount.toFloat() / checkedTotal
-                    val unavailableRatio = unavailableCount.toFloat() / checkedTotal
-
-                    // 分布条形图
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                    ) {
-                        if (availableRatio > 0f) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(availableRatio)
-                                    .fillMaxHeight()
-                                    .background(AppColors.available)
-                            )
-                        }
-                        if (partialRatio > 0f) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(partialRatio)
-                                    .fillMaxHeight()
-                                    .background(AppColors.partial)
-                            )
-                        }
-                        if (unavailableRatio > 0f) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(unavailableRatio)
-                                    .fillMaxHeight()
-                                    .background(AppColors.unavailable)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // 图例
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        LegendItem(color = AppColors.available, label = "可订", count = availableCount)
-                        LegendItem(color = AppColors.partial, label = "部分", count = partialCount)
-                        LegendItem(color = AppColors.unavailable, label = "无房", count = unavailableCount)
-                    }
+            // 次要统计行
+            if (noRecordCount > 0 || partialCount > 0) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White.copy(alpha = 0.1f))
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    SmallChip(value = "$partialCount", label = "部分无房", color = Color(0xFFFFD54F))
+                    SmallChip(value = "$noRecordCount", label = "待检查", color = Color.White.copy(alpha = 0.7f))
+                    SmallChip(value = "$active", label = "监控中", color = Color(0xFF82B1FF))
                 }
+            }
 
-                if (unchecked > 0) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Schedule,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "$unchecked 个房源尚未检查",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+            if (unchecked > 0 && checked == 0) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.White.copy(alpha = 0.1f))
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.Schedule,
+                        contentDescription = null,
+                        tint = Color(0xFFFFD54F),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "$unchecked 个房源尚未检查，点击「全部检查」开始",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
                 }
             }
         }
@@ -339,31 +384,53 @@ fun StatusSummaryCard(
 }
 
 @Composable
-private fun BigStatItem(label: String, value: Int, icon: androidx.compose.ui.graphics.vector.ImageVector, color: Color) {
+private fun DashboardStatItem(
+    value: String,
+    label: String,
+    subLabel: String,
+    color: Color
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(
-            icon,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = color
-        )
-        Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "$value",
-            style = MaterialTheme.typography.headlineSmall,
+            text = value,
+            fontSize = 36.sp,
+            fontWeight = FontWeight.Bold,
+            color = color,
+            lineHeight = 40.sp
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = Color.White,
+            fontWeight = FontWeight.Medium
+        )
+        Text(
+            text = subLabel,
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.White.copy(alpha = 0.6f)
+        )
+    }
+}
+
+@Composable
+private fun SmallChip(value: String, label: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = color
         )
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = Color.White.copy(alpha = 0.7f)
         )
     }
 }
 
 @Composable
-private fun LegendItem(color: Color, label: String, count: Int) {
+private fun LegendDot(color: Color, label: String, count: Int) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
@@ -374,7 +441,7 @@ private fun LegendItem(color: Color, label: String, count: Int) {
         Text(
             text = "$label $count",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = Color.White.copy(alpha = 0.8f)
         )
     }
 }
@@ -382,37 +449,46 @@ private fun LegendItem(color: Color, label: String, count: Int) {
 @Composable
 fun EmptyState(modifier: Modifier = Modifier, onAddProperty: () -> Unit) {
     Column(
-        modifier = modifier.padding(32.dp),
+        modifier = modifier.padding(48.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(
-            Icons.Default.Home,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
+        Box(
+            modifier = Modifier
+                .size(120.dp)
+                .clip(RoundedCornerShape(60.dp))
+                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.Home,
+                contentDescription = null,
+                modifier = Modifier.size(56.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+        Spacer(modifier = Modifier.height(24.dp))
         Text(
             text = "还没有添加房源",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "点击下方按钮添加要监控的房源",
+            text = "添加你要监控的房源链接\n实时追踪可订状态变化",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
         Button(
             onClick = onAddProperty,
-            shape = RoundedCornerShape(12.dp)
+            shape = AppShapes.button,
+            contentPadding = PaddingValues(horizontal = 32.dp, vertical = 12.dp)
         ) {
-            Icon(Icons.Default.Add, contentDescription = null)
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("添加房源")
+            Text("添加第一个房源", style = MaterialTheme.typography.labelLarge)
         }
     }
 }

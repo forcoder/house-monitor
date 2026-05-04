@@ -13,12 +13,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.housemonitor.service.PlatformParserFactory
+import com.housemonitor.ui.theme.AppShapes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,7 +49,6 @@ fun AddPropertyDialog(
         nameFocusRequester.requestFocus()
     }
 
-    // URL 变化时自动检测平台
     LaunchedEffect(url) {
         if (url.isNotBlank()) {
             val detected = platformParserFactory.detectPlatform(url)
@@ -56,12 +56,16 @@ fun AddPropertyDialog(
         }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+            shape = AppShapes.dialog,
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -69,13 +73,15 @@ fun AddPropertyDialog(
                     .padding(24.dp)
                     .verticalScroll(rememberScrollState())
             ) {
+                // 标题
                 Text(
                     text = "添加房源",
                     style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 20.dp)
                 )
 
-                // 房源名称输入
+                // 房源名称
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -84,7 +90,8 @@ fun AddPropertyDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(nameFocusRequester),
-                    singleLine = true
+                    singleLine = true,
+                    shape = AppShapes.button
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -101,15 +108,16 @@ fun AddPropertyDialog(
                         readOnly = true,
                         label = { Text("平台") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = platformDropdownExpanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        shape = AppShapes.button
                     )
                     ExposedDropdownMenu(
                         expanded = platformDropdownExpanded,
                         onDismissRequest = { platformDropdownExpanded = false }
                     ) {
-                        platforms.forEach { (id, name) ->
+                        platforms.forEach { (id, displayName) ->
                             DropdownMenuItem(
-                                text = { Text(name) },
+                                text = { Text(displayName) },
                                 onClick = {
                                     selectedPlatform = id
                                     platformDropdownExpanded = false
@@ -121,11 +129,11 @@ fun AddPropertyDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 美团小程序链接输入
+                // 链接输入
                 OutlinedTextField(
                     value = url,
                     onValueChange = { url = it },
-                    label = { Text("美团小程序链接") },
+                    label = { Text("小程序链接") },
                     placeholder = { Text("https://...meituan.com/...") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -137,25 +145,22 @@ fun AddPropertyDialog(
                                 contentDescription = if (showUrlExample) "隐藏示例" else "显示示例"
                             )
                         }
-                    }
+                    },
+                    shape = AppShapes.button
                 )
 
-                // URL示例
                 if (showUrlExample) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = AppShapes.cardSmall,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                     ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp)
-                        ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
                             Text(
                                 text = "链接格式示例：",
                                 style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
@@ -169,15 +174,16 @@ fun AddPropertyDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 描述输入（可选）
+                // 描述（可选）
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("描述（可选）") },
+                    label = { Text("备注（可选）") },
                     placeholder = { Text("备注信息...") },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2,
-                    maxLines = 3
+                    maxLines = 3,
+                    shape = AppShapes.button
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -187,14 +193,10 @@ fun AddPropertyDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(
-                        onClick = onDismiss
-                    ) {
+                    TextButton(onClick = onDismiss) {
                         Text("取消")
                     }
-
                     Spacer(modifier = Modifier.width(8.dp))
-
                     Button(
                         onClick = {
                             if (name.isNotBlank() && url.isNotBlank()) {
@@ -202,12 +204,14 @@ fun AddPropertyDialog(
                                 onConfirm(name.trim(), url.trim(), description.trim(), selectedPlatform)
                             }
                         },
-                        enabled = name.isNotBlank() && url.isNotBlank() && !isLoading
+                        enabled = name.isNotBlank() && url.isNotBlank() && !isLoading,
+                        shape = AppShapes.button
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                         }

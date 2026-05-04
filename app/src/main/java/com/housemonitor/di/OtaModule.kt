@@ -1,5 +1,6 @@
 package com.housemonitor.di
 
+import android.content.Context
 import com.housemonitor.data.remote.ShzlApiService
 import com.housemonitor.data.repository.OtaRepository
 import com.housemonitor.data.repository.OtaRepositoryImpl
@@ -7,6 +8,7 @@ import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -24,6 +26,10 @@ abstract class OtaModule {
     abstract fun bindOtaRepository(impl: OtaRepositoryImpl): OtaRepository
 
     companion object {
+        @Provides
+        @Singleton
+        fun provideContext(@ApplicationContext context: Context): Context = context
+
         @Provides
         @Singleton
         fun provideShzlApiService(): ShzlApiService {

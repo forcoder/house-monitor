@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 房子图标 - 居中在 108x108 画布上 -->
+    <!-- 整体偏移使房子居中: 中心点 (54, 58) -->
+
+    <!-- 烟囱 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M64,28 L64,38 L68,38 L68,28 Z" />
+
+    <!-- 屋顶（三角形） -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,22 L30,44 L78,44 Z" />
+
+    <!-- 房子主体（矩形） -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,44 L34,76 L74,76 L74,44 Z" />
+
+    <!-- 门 -->
+    <path
+        android:fillColor="#5C6BC0"
+        android:pathData="M48,76 L48,56 L60,56 L60,76 Z" />
+
+    <!-- 门把手 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M57,66 m-2,0 a2,2 0,1 1,4 0 a2,2 0,1 1,-4 0" />
+
+    <!-- 左窗户 -->
+    <path
+        android:fillColor="#5C6BC0"
+        android:pathData="M38,48 L38,56 L44,56 L44,48 Z" />
+
+    <!-- 左窗十字格 -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1"
+        android:pathData="M41,48 L41,56 M38,52 L44,52" />
+
+    <!-- 右窗户 -->
+    <path
+        android:fillColor="#5C6BC0"
+        android:pathData="M64,48 L64,56 L70,56 L70,48 Z" />
+
+    <!-- 右窗十字格 -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1"
+        android:pathData="M67,48 L67,56 M64,52 L70,52" />
+</vector>

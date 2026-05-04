@@ -1,5 +1,6 @@
 package com.housemonitor.ui.main
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -9,9 +10,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
+import com.housemonitor.OtaEntryPoint
 import com.housemonitor.ui.history.HistoryActivity
 import com.housemonitor.ui.theme.HouseMonitorTheme
 import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.*
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -28,6 +35,28 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     MainScreen(viewModel = viewModel)
+                }
+            }
+        }
+
+        // 每日自动检查更新
+        val prefs = getSharedPreferences("ota_auto_check", Context.MODE_PRIVATE)
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        val lastAutoCheckDay = prefs.getString("last_auto_check_day", "")
+
+        if (lastAutoCheckDay != today) {
+            prefs.edit().putString("last_auto_check_day", today).apply()
+            // 延迟2秒后检查，避免影响启动体验
+            lifecycleScope.launch {
+                delay(2000)
+                try {
+                    val otaManager = EntryPointAccessors.fromApplication(
+                        applicationContext,
+                        OtaEntryPoint::class.java
+                    ).otaManager()
+                    otaManager.checkForUpdate()
+                } catch (e: Exception) {
+                    // 静默失败，不影响APP启动
                 }
             }
         }
